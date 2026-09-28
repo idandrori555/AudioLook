@@ -33,12 +33,12 @@ export default function AccountModal() {
         {/* User Card */}
         <div className="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.04]">
           <div className="w-12 h-12 rounded-full bg-[#ffb86b] text-[#2c1700] flex items-center justify-center font-bold text-[18px]">
-            ע
+            מ
           </div>
           <div className="flex flex-col">
             <span className="text-[15px] font-semibold text-white">משתמש אודיולוק</span>
-            <span className="text-[12px] text-[#9a9da6]">idandrori777@gmail.com</span>
-            <span className="text-[11px] text-[#ffb86b] mt-0.5 font-medium">מנוי Premium פעיל</span>
+            {/* <span className="text-[12px] text-[#9a9da6]">idandrori777@gmail.com</span> */}
+            {/* <span className="text-[11px] text-[#ffb86b] mt-0.5 font-medium">מנוי Premium פעיל</span> */}
           </div>
         </div>
 
@@ -54,19 +54,19 @@ export default function AccountModal() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]">
-          <div className="flex items-center justify-between text-[13px] text-white/80 py-1">
-            <span>סנכרון ענן בין מכשירים</span>
-            <span className="text-emerald-400 flex items-center gap-1 text-[12px]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              מסונכרן
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[13px] text-white/80 py-1">
-            <span>גיבוי סימניות אוטומטי</span>
-            <span className="text-white/50 text-[12px]">מופעל</span>
-          </div>
-        </div>
+        {/* <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]"> */}
+        {/*   <div className="flex items-center justify-between text-[13px] text-white/80 py-1"> */}
+        {/*     <span>סנכרון ענן בין מכשירים</span> */}
+        {/*     <span className="text-emerald-400 flex items-center gap-1 text-[12px]"> */}
+        {/*       <span className="w-2 h-2 rounded-full bg-emerald-400" /> */}
+        {/*       מסונכרן */}
+        {/*     </span> */}
+        {/*   </div> */}
+        {/*   <div className="flex items-center justify-between text-[13px] text-white/80 py-1"> */}
+        {/*     <span>גיבוי סימניות אוטומטי</span> */}
+        {/*     <span className="text-white/50 text-[12px]">מופעל</span> */}
+        {/*   </div> */}
+        {/* </div> */}
 
         <button
           onClick={() => setIsAccountModalOpen(false)}

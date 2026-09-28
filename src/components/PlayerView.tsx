@@ -40,8 +40,8 @@ export default function PlayerView() {
   // Check if current timestamp is bookmarked
   const isCurrentlyBookmarked = currentBook
     ? bookmarks.some(
-        (bm) => bm.bookId === currentBook.id && Math.abs(bm.timestampSeconds - currentTime) < 6
-      )
+      (bm) => bm.bookId === currentBook.id && Math.abs(bm.timestampSeconds - currentTime) < 6
+    )
     : false;
 
   const [isDraggingScrubber, setIsDraggingScrubber] = useState(false);
@@ -73,7 +73,7 @@ export default function PlayerView() {
       setIsDraggingScrubber(false);
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch { }
       const targetSeconds = calculateSeekTime(e.clientX);
       seekTo(targetSeconds);
     }
@@ -162,22 +162,20 @@ export default function PlayerView() {
             <div className="flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/[0.08]">
               <button
                 onClick={() => !isVideoMode && toggleVideoMode()}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${
-                  isVideoMode
-                    ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
-                    : 'text-white/60 hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${isVideoMode
+                  ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
+                  : 'text-white/60 hover:text-white'
+                  }`}
               >
                 <span className="material-symbols-outlined text-[15px]">smart_display</span>
                 <span>וידאו יוטיוב</span>
               </button>
               <button
                 onClick={() => isVideoMode && toggleVideoMode()}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${
-                  !isVideoMode
-                    ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
-                    : 'text-white/60 hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${!isVideoMode
+                  ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
+                  : 'text-white/60 hover:text-white'
+                  }`}
               >
                 <span className="material-symbols-outlined text-[15px]">headphones</span>
                 <span>האזנה (כריכה)</span>
@@ -248,9 +246,8 @@ export default function PlayerView() {
             </div>
             {/* Thumb */}
             <div
-              className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#ffb86b] shadow-md border-2 border-[#121316] pointer-events-none transition-transform ${
-                isDraggingScrubber ? 'scale-125 ring-2 ring-[#ffb86b]/40' : 'group-hover:scale-125'
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#ffb86b] shadow-md border-2 border-[#121316] pointer-events-none transition-transform ${isDraggingScrubber ? 'scale-125 ring-2 ring-[#ffb86b]/40' : 'group-hover:scale-125'
+                }`}
               id="scrubber-head"
               style={{ left: `calc(${progressPercent}% - 8px)` }}
             />
@@ -279,15 +276,14 @@ export default function PlayerView() {
             </button>
           )}
 
-          {/* Jump Back 10s */}
+          {/* Jump Forward 10s */}
           <button
-            onClick={handleReplay10}
-            aria-label="10 שניות אחורה"
-            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${
-              bounceReplay ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
-            }`}
-            id="btn-replay-10"
-            title="קפוץ 10 שניות אחורה"
+            onClick={handleForward10}
+            aria-label="10 שניות קדימה"
+            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${bounceForward ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
+              }`}
+            id="btn-forward-10"
+            title="קפוץ 10 שניות קדימה"
           >
             <svg
               className="w-[30px] h-[30px]"
@@ -298,8 +294,8 @@ export default function PlayerView() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <polyline points="3 3 3 8 8 8" />
+              <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <polyline points="21 3 21 8 16 8" />
               <text
                 x="12"
                 y="15.2"
@@ -331,15 +327,15 @@ export default function PlayerView() {
             </span>
           </button>
 
-          {/* Jump Forward 10s */}
+
+          {/* Jump Back 10s */}
           <button
-            onClick={handleForward10}
-            aria-label="10 שניות קדימה"
-            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${
-              bounceForward ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
-            }`}
-            id="btn-forward-10"
-            title="קפוץ 10 שניות קדימה"
+            onClick={handleReplay10}
+            aria-label="10 שניות אחורה"
+            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${bounceReplay ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
+              }`}
+            id="btn-replay-10"
+            title="קפוץ 10 שניות אחורה"
           >
             <svg
               className="w-[30px] h-[30px]"
@@ -350,8 +346,8 @@ export default function PlayerView() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <polyline points="21 3 21 8 16 8" />
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <polyline points="3 3 3 8 8 8" />
               <text
                 x="12"
                 y="15.2"
@@ -366,6 +362,8 @@ export default function PlayerView() {
               </text>
             </svg>
           </button>
+
+
 
           {/* Next Chapter (For multi-chapter audiobooks or YouTube playlists) */}
           {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
@@ -408,11 +406,10 @@ export default function PlayerView() {
                       setPlaybackSpeed(speed);
                       setIsSpeedMenuOpen(false);
                     }}
-                    className={`speed-opt px-2.5 py-1 rounded text-[12px] text-center cursor-pointer transition-colors ${
-                      playbackSpeed === speed
-                        ? 'font-bold bg-[#e89838] text-[#2c1700]'
-                        : 'text-[#9d9ca4] hover:bg-white/5 hover:text-white'
-                    }`}
+                    className={`speed-opt px-2.5 py-1 rounded text-[12px] text-center cursor-pointer transition-colors ${playbackSpeed === speed
+                      ? 'font-bold bg-[#e89838] text-[#2c1700]'
+                      : 'text-[#9d9ca4] hover:bg-white/5 hover:text-white'
+                      }`}
                   >
                     {speed}x
                   </button>
@@ -435,8 +432,8 @@ export default function PlayerView() {
               {sleepTimerSecondsRemaining
                 ? `${Math.ceil(sleepTimerSecondsRemaining / 60)} דק׳`
                 : sleepTimerMinutes
-                ? `${sleepTimerMinutes} דק׳`
-                : 'כבוי'}
+                  ? `${sleepTimerMinutes} דק׳`
+                  : 'כבוי'}
             </span>
           </button>
 
@@ -445,18 +442,16 @@ export default function PlayerView() {
           {/* Bookmark button */}
           <button
             onClick={toggleBookmark}
-            className={`flex items-center gap-1.5 py-1 px-3 rounded-lg active:bg-white/5 transition-colors cursor-pointer ${
-              isCurrentlyBookmarked
-                ? 'text-[#ffb86b]'
-                : 'text-[#e3e2e6]/90 hover:text-[#ffb86b]'
-            }`}
+            className={`flex items-center gap-1.5 py-1 px-3 rounded-lg active:bg-white/5 transition-colors cursor-pointer ${isCurrentlyBookmarked
+              ? 'text-[#ffb86b]'
+              : 'text-[#e3e2e6]/90 hover:text-[#ffb86b]'
+              }`}
             id="quick-bookmark-btn"
             title="שמור סימנייה"
           >
             <span
-              className={`material-symbols-outlined text-[18px] ${
-                isCurrentlyBookmarked ? 'text-[#ffb86b]' : 'text-[#9d9ca4]'
-              }`}
+              className={`material-symbols-outlined text-[18px] ${isCurrentlyBookmarked ? 'text-[#ffb86b]' : 'text-[#9d9ca4]'
+                }`}
               id="quick-bm-icon"
               style={isCurrentlyBookmarked ? { fontVariationSettings: "'FILL' 1" } : undefined}
             >

@@ -64,7 +64,7 @@ export default function LibraryView() {
   const totalHoursListened = Math.round(
     books.reduce((acc, b) => acc + (b.currentTimeSeconds / 3600), 0) * 10
   ) / 10;
-  
+
   const totalOfflineStorageMB = books.length * 85; // ~85MB average per saved track
   const storageFormatted =
     totalOfflineStorageMB >= 1000
@@ -84,13 +84,13 @@ export default function LibraryView() {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <h1 className="text-[28px] font-semibold tracking-tight text-white">הספרייה שלי</h1>
-          <button
-            onClick={() => setIsAddBookModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/80 hover:text-white text-[12px] font-medium transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            <span>הוסף ספר</span>
-          </button>
+          {/* <button */}
+          {/*   onClick={() => setIsAddBookModalOpen(true)} */}
+          {/*   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/80 hover:text-white text-[12px] font-medium transition-colors cursor-pointer" */}
+          {/* > */}
+          {/*   <span className="material-symbols-outlined text-[16px]">add</span> */}
+          {/*   <span>הוסף ספר</span> */}
+          {/* </button> */}
         </div>
         <p className="text-[13px] text-[#9a9da6] flex items-center gap-2">
           <span>{totalHoursListened} שעות האזנה</span>
@@ -110,7 +110,7 @@ export default function LibraryView() {
           onKeyDown={(e) => e.key === 'Enter' && handleImport()}
           className="bg-transparent text-[14px] text-white placeholder:text-white/35 w-full outline-none py-1.5 min-w-0"
           id="quick-input"
-          placeholder="הדבק קישור יוטיוב (סרטון או פלייליסט שלם)..."
+          placeholder="הדבק קישור יוטיוב"
           type="url"
         />
         <button
@@ -132,7 +132,7 @@ export default function LibraryView() {
           ) : (
             <>
               <span className="material-symbols-outlined text-[15px]">arrow_downward</span>
-              <span>ייבא</span>
+              {/* <span>ייבא</span> */}
             </>
           )}
         </button>
@@ -142,41 +142,37 @@ export default function LibraryView() {
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5" id="shelf-filters">
         <button
           onClick={() => setActiveFilter('all')}
-          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeFilter === 'all'
-              ? 'bg-white/[0.12] text-white'
-              : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'all'
+            ? 'bg-white/[0.12] text-white'
+            : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
+            }`}
         >
           הכל ({allCount})
         </button>
         <button
           onClick={() => setActiveFilter('listening')}
-          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeFilter === 'listening'
-              ? 'bg-white/[0.12] text-white'
-              : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'listening'
+            ? 'bg-white/[0.12] text-white'
+            : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
+            }`}
         >
           בהאזנה ({listeningCount})
         </button>
         <button
           onClick={() => setActiveFilter('completed')}
-          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeFilter === 'completed'
-              ? 'bg-white/[0.12] text-white'
-              : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'completed'
+            ? 'bg-white/[0.12] text-white'
+            : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
+            }`}
         >
           הושלמו ({completedCount})
         </button>
         <button
           onClick={() => setActiveFilter('queued')}
-          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeFilter === 'queued'
-              ? 'bg-white/[0.12] text-white'
-              : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'queued'
+            ? 'bg-white/[0.12] text-white'
+            : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
+            }`}
         >
           רשימת המתנה ({queuedCount})
         </button>
@@ -190,22 +186,21 @@ export default function LibraryView() {
               {currentBook.isPlaylist
                 ? 'פלייליסט פעיל'
                 : currentBook.youtubeId
-                ? 'סרטון פעיל'
-                : 'האזנה נוכחית'}
+                  ? 'סרטון פעיל'
+                  : 'האזנה נוכחית'}
             </span>
             <span className="text-[#ffb86b]/90 text-[12px] flex items-center gap-1">
               <span
-                className={`inline-block w-1.5 h-1.5 rounded-full bg-[#ffb86b] ${
-                  isPlaying ? 'animate-pulse' : ''
-                }`}
+                className={`inline-block w-1.5 h-1.5 rounded-full bg-[#ffb86b] ${isPlaying ? 'animate-pulse' : ''
+                  }`}
               />
               {currentBook.isPlaylist && currentChapter
                 ? `פרק ${currentChapter.number} מתוך ${currentBook.totalChapters}`
                 : currentBook.youtubeId
-                ? 'וידאו מלא'
-                : currentChapter
-                ? `פרק ${currentChapter.number} מתוך ${currentBook.totalChapters}`
-                : 'ספר מלא'}
+                  ? 'וידאו מלא'
+                  : currentChapter
+                    ? `פרק ${currentChapter.number} מתוך ${currentBook.totalChapters}`
+                    : 'ספר מלא'}
             </span>
           </div>
 
@@ -281,8 +276,8 @@ export default function LibraryView() {
                   {isPlaying
                     ? 'נגן כעת (פתח נגן)'
                     : currentTime > 0
-                    ? `המשך מ-${formatTime(currentTime)}`
-                    : 'התחל האזנה'}
+                      ? `המשך מ-${formatTime(currentTime)}`
+                      : 'התחל האזנה'}
                 </span>
               </button>
               <button
@@ -349,17 +344,17 @@ export default function LibraryView() {
           <div className="flex flex-col gap-1">
             <h3 className="text-[17px] font-semibold text-white">הספרייה שלך ריקה כרגע</h3>
             <p className="text-[13px] text-[#9a9da6] max-w-sm">
-              הדבק קישור יוטיוב בשורת הייבוא למעלה, או לחץ על כפתור "הוסף ספר" כדי להתחיל להאזין.
+              הדבק קישור יוטיוב בשורת הייבוא למעלה.
             </p>
           </div>
 
-          <button
-            onClick={() => setIsAddBookModalOpen(true)}
-            className="mt-1 px-4 py-2 rounded-xl bg-[#ffb86b] text-[#492900] text-[13px] font-medium hover:bg-[#ffc685] transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[17px]">add</span>
-            <span>הוסף ספר שמע</span>
-          </button>
+          {/* <button */}
+          {/*   onClick={() => setIsAddBookModalOpen(true)} */}
+          {/*   className="mt-1 px-4 py-2 rounded-xl bg-[#ffb86b] text-[#492900] text-[13px] font-medium hover:bg-[#ffc685] transition-colors cursor-pointer flex items-center gap-1.5" */}
+          {/* > */}
+          {/*   <span className="material-symbols-outlined text-[17px]">add</span> */}
+          {/*   <span>הוסף ספר שמע</span> */}
+          {/* </button> */}
         </section>
       )}
 
@@ -389,9 +384,8 @@ export default function LibraryView() {
                 <div
                   key={book.id}
                   onClick={() => selectBook(book.id, true, false)}
-                  className={`group bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl p-3 flex items-center gap-3.5 transition-all cursor-pointer ${
-                    isDone ? 'opacity-85' : ''
-                  } ${isSelected ? 'border-[#ffb86b]/30 bg-[#1d1e23]' : ''}`}
+                  className={`group bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl p-3 flex items-center gap-3.5 transition-all cursor-pointer ${isDone ? 'opacity-85' : ''
+                    } ${isSelected ? 'border-[#ffb86b]/30 bg-[#1d1e23]' : ''}`}
                 >
                   {/* Thumbnail */}
                   <div className="relative w-14 h-19 rounded-md overflow-hidden flex-shrink-0 shadow-sm bg-[#0a0b0d] ring-1 ring-white/5">
@@ -418,46 +412,6 @@ export default function LibraryView() {
                       <h4 className="text-[15px] font-medium text-white truncate group-hover:text-[#ffb86b] transition-colors">
                         {book.title}
                       </h4>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveMenuBookId(activeMenuBookId === book.id ? null : book.id);
-                          }}
-                          aria-label="אפשרויות"
-                          className="text-white/35 hover:text-white transition-colors p-1 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">more_vert</span>
-                        </button>
-
-                        {activeMenuBookId === book.id && (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute left-0 top-7 bg-[#24252a] border border-white/[0.1] rounded-xl p-1.5 shadow-2xl z-30 min-w-[150px] text-[13px] flex flex-col gap-1"
-                          >
-                            <button
-                              onClick={() => {
-                                selectBook(book.id, true, true);
-                                setActiveMenuBookId(null);
-                              }}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 text-right cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-                              <span>נגן במסך מלא</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                deleteBook(book.id);
-                                setActiveMenuBookId(null);
-                              }}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 text-right cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">delete</span>
-                              <span>מחק ספר</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
 
                     <p className="text-[12px] text-[#9a9da6] truncate">
@@ -500,6 +454,47 @@ export default function LibraryView() {
                     )}
                   </div>
 
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuBookId(activeMenuBookId === book.id ? null : book.id);
+                      }}
+                      aria-label="אפשרויות"
+                      className="text-white/35 hover:text-white transition-colors p-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                    </button>
+
+                    {activeMenuBookId === book.id && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-0 top-7 bg-[#24252a] border border-white/[0.1] rounded-xl p-1.5 shadow-2xl z-30 min-w-[150px] text-[13px] flex flex-col gap-1"
+                      >
+                        <button
+                          onClick={() => {
+                            selectBook(book.id, true, true);
+                            setActiveMenuBookId(null);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 text-right cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                          <span>נגן במסך מלא</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            deleteBook(book.id);
+                            setActiveMenuBookId(null);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 text-right cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                          <span>מחק ספר</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Right Action Button */}
                   {isDone ? (
                     <button
@@ -524,11 +519,10 @@ export default function LibraryView() {
                         }
                       }}
                       aria-label="נגן"
-                      className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 cursor-pointer ${
-                        isSelected && isPlaying
-                          ? 'bg-[#ffb86b] text-[#492900]'
-                          : 'bg-white/[0.06] group-hover:bg-[#ffb86b] group-hover:text-[#492900] text-white/80'
-                      }`}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 cursor-pointer ${isSelected && isPlaying
+                        ? 'bg-[#ffb86b] text-[#492900]'
+                        : 'bg-white/[0.06] group-hover:bg-[#ffb86b] group-hover:text-[#492900] text-white/80'
+                        }`}
                     >
                       <span
                         className="material-symbols-outlined text-[20px]"

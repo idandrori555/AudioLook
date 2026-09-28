@@ -42,11 +42,10 @@ export default function SettingsView() {
               <button
                 key={s}
                 onClick={() => setPlaybackSpeed(s)}
-                className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors cursor-pointer ${
-                  playbackSpeed === s
-                    ? 'bg-[#ffb86b] text-[#2c1700] font-bold'
-                    : 'text-white/60 hover:text-white'
-                }`}
+                className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors cursor-pointer ${playbackSpeed === s
+                  ? 'bg-[#ffb86b] text-[#2c1700] font-bold'
+                  : 'text-white/60 hover:text-white'
+                  }`}
               >
                 {s}x
               </button>
@@ -63,14 +62,12 @@ export default function SettingsView() {
           </div>
           <button
             onClick={() => setAudioSoundEnabled(!audioSoundEnabled)}
-            className={`w-12 h-7 rounded-full p-1 transition-colors cursor-pointer flex items-center ${
-              audioSoundEnabled ? 'bg-[#ffb86b] justify-end' : 'bg-white/10 justify-start'
-            }`}
+            className={`w-12 h-7 rounded-full p-1 transition-colors cursor-pointer flex items-center ${audioSoundEnabled ? 'bg-[#ffb86b] justify-end' : 'bg-white/10 justify-start'
+              }`}
           >
             <div
-              className={`w-5 h-5 rounded-full ${
-                audioSoundEnabled ? 'bg-[#2c1700]' : 'bg-white/60'
-              }`}
+              className={`w-5 h-5 rounded-full ${audioSoundEnabled ? 'bg-[#2c1700]' : 'bg-white/60'
+                }`}
             />
           </button>
         </div>
@@ -122,13 +119,13 @@ export default function SettingsView() {
       </section>
 
       {/* App Info */}
-      <div className="text-center py-4 flex flex-col items-center gap-1.5 text-white/35 text-[12px]">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-white/60">אודיולוק AudioLook</span>
-          <span>גרסה 2.4.0</span>
-        </div>
-        <span>פותח בהשראת Apple Books לחובבי ספרות והסכתים עמוקים</span>
-      </div>
+      {/* <div className="text-center py-4 flex flex-col items-center gap-1.5 text-white/35 text-[12px]"> */}
+      {/*   <div className="flex items-center gap-2"> */}
+      {/*     <span className="font-semibold text-white/60">אודיולוק AudioLook</span> */}
+      {/*     <span>גרסה 2.4.0</span> */}
+      {/*   </div> */}
+      {/*   <span>פותח בהשראת Apple Books לחובבי ספרות והסכתים עמוקים</span> */}
+      {/* </div> */}
     </main>
   );
 }
