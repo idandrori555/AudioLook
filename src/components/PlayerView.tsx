@@ -156,6 +156,36 @@ export default function PlayerView() {
 
       {/* Main Player Content Area */}
       <main className="flex-1 flex flex-col w-full max-w-md mx-auto pt-3 pb-20 px-6 select-none justify-between">
+        {/* Toggle Mode Bar for YouTube tracks */}
+        {isYouTubeBook && (
+          <div className="flex justify-center mb-3">
+            <div className="flex items-center gap-1 bg-white/[0.05] p-1 rounded-full border border-white/[0.08]">
+              <button
+                onClick={() => !isVideoMode && toggleVideoMode()}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${
+                  isVideoMode
+                    ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[15px]">smart_display</span>
+                <span>וידאו יוטיוב</span>
+              </button>
+              <button
+                onClick={() => isVideoMode && toggleVideoMode()}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all cursor-pointer ${
+                  !isVideoMode
+                    ? 'bg-[#ffb86b] text-[#2c1700] shadow-sm'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[15px]">headphones</span>
+                <span>האזנה (כריכה)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Video / Artwork Display Frame */}
         <div className="w-full flex justify-center my-auto py-1">
           {isYouTubeBook && isVideoMode ? (
