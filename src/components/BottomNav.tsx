@@ -9,7 +9,7 @@ export default function BottomNav() {
   const reduced = useAppReducedMotion();
 
   const tabs: { id: TabType; label: string; icon: string }[] = [
-    { id: 'library', label: 'ספרייה', icon: 'local_library' },
+    { id: 'library', label: 'ספרייה', icon: 'auto_stories' },
     { id: 'player', label: 'נגן', icon: 'headphones' },
     { id: 'bookmarks', label: 'סימניות', icon: 'bookmark' },
     { id: 'settings', label: 'הגדרות', icon: 'tune' },
