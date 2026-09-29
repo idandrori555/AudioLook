@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { pressTap, springSnappy, tx, useAppReducedMotion } from './motion';
-import AddBookModal from './AddBookModal';
+
 
 export default function LibraryView() {
   const {
@@ -31,7 +31,6 @@ export default function LibraryView() {
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success'>('idle');
   const [pendingDeleteBookId, setPendingDeleteBookId] = useState<string | null>(null);
-  const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const reduced = useAppReducedMotion();
 
   const pendingDeleteBook = pendingDeleteBookId
@@ -91,13 +90,6 @@ export default function LibraryView() {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <h1 className="text-[28px] font-semibold tracking-tight text-white">הספרייה שלי</h1>
-          {/* <button */}
-          {/*   onClick={() => setIsAddBookModalOpen(true)} */}
-          {/*   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/80 hover:text-white text-[12px] font-medium transition-colors cursor-pointer" */}
-          {/* > */}
-          {/*   <span className="material-symbols-outlined text-[16px]">add</span> */}
-          {/*   <span>הוסף ספר</span> */}
-          {/* </button> */}
         </div>
         <p className="text-[13px] text-[#9a9da6] flex items-center gap-2">
           <span>{totalHoursListened} שעות האזנה</span>
@@ -139,7 +131,6 @@ export default function LibraryView() {
           ) : (
             <>
               <span className="material-symbols-outlined text-[15px]">arrow_downward</span>
-              {/* <span>ייבא</span> */}
             </>
           )}
         </button>
@@ -304,14 +295,6 @@ export default function LibraryView() {
               הדבק קישור יוטיוב בשורת הייבוא למעלה.
             </p>
           </div>
-
-          {/* <button */}
-          {/*   onClick={() => setIsAddBookModalOpen(true)} */}
-          {/*   className="mt-1 px-4 py-2 rounded-xl bg-[#ffb86b] text-[#492900] text-[13px] font-medium hover:bg-[#ffc685] transition-colors cursor-pointer flex items-center gap-1.5" */}
-          {/* > */}
-          {/*   <span className="material-symbols-outlined text-[17px]">add</span> */}
-          {/*   <span>הוסף ספר שמע</span> */}
-          {/* </button> */}
         </section>
       )}
 
@@ -487,9 +470,6 @@ export default function LibraryView() {
           הגדרות
         </button>
       </div>
-
-      {/* Modal to add custom book */}
-      <AddBookModal isOpen={isAddBookModalOpen} onClose={() => setIsAddBookModalOpen(false)} />
 
       {/* Delete confirmation */}
       {pendingDeleteBookId && (

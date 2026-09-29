@@ -118,14 +118,6 @@ export default function SettingsView() {
         </div>
       </section>
 
-      {/* App Info */}
-      {/* <div className="text-center py-4 flex flex-col items-center gap-1.5 text-white/35 text-[12px]"> */}
-      {/*   <div className="flex items-center gap-2"> */}
-      {/*     <span className="font-semibold text-white/60">אודיולוק AudioLook</span> */}
-      {/*     <span>גרסה 2.4.0</span> */}
-      {/*   </div> */}
-      {/*   <span>פותח בהשראת Apple Books לחובבי ספרות והסכתים עמוקים</span> */}
-      {/* </div> */}
     </main>
   );
 }

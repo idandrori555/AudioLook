@@ -60,8 +60,20 @@ app.get('/api/youtube-playlist', async (req, res) => {
   }
 });
 
-// Serve static SPA
-app.use(express.static(DIST_DIR, { maxAge: '1y', index: false }));
+// Serve static SPA.
+// Service-worker files must never be long-cached, or clients would stop
+// picking up new app versions (the browser checks sw.js for updates).
+app.use(
+  express.static(DIST_DIR, {
+    maxAge: '1y',
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (/(sw\.js|registerSW\.js|manifest\.webmanifest)$/.test(filePath)) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }),
+);
 
 // SPA fallback — must be last
 app.get('*', (_req, res) => {

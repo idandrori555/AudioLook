@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, Plugin } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 import { parsePlaylistHtml } from './playlistParser.js';
 
 function youtubePlaylistPlugin(): Plugin {
@@ -71,7 +72,76 @@ function youtubePlaylistPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), youtubePlaylistPlugin()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      youtubePlaylistPlugin(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        // App shell is precached; images/fonts cached at runtime (see below).
+        // /api/* is deliberately NetworkOnly — playlist data must stay fresh.
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          runtimeCaching: [
+            {
+              // Google Fonts stylesheets
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-css',
+                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+            {
+              // Google Fonts files
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-files',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+            {
+              // Cover art / thumbnails (YouTube, Unsplash, Google user content)
+              urlPattern: /^https:\/\/(img\.youtube\.com|i\.ytimg\.com|images\.unsplash\.com|lh3\.googleusercontent\.com)\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'cover-images',
+                expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+          ],
+        },
+        manifest: {
+          name: 'AudioLook — אודיולוק',
+          short_name: 'AudioLook',
+          description:
+            'אפליקציית ספרי שמע מעוצבת בהשראת Apple Books עם ספרייה אישית, נגן מתקדם, ייבוא תכנים, סימניות וטיימר שינה',
+          lang: 'he',
+          dir: 'rtl',
+          start_url: '/',
+          scope: '/',
+          display: 'standalone',
+          orientation: 'portrait',
+          background_color: '#121316',
+          theme_color: '#121316',
+          categories: ['music', 'entertainment', 'books'],
+          icons: [
+            { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+            {
+              src: 'icons/maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+      }),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

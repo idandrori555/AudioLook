@@ -9,9 +9,10 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/package.json ./package.json
+# Only express ships to production (everything else is a build-time devDependency)
+COPY --from=build /app/package.json /app/package-lock.json ./
 COPY server.js playlistParser.js ./
-RUN npm install --omit=dev --legacy-peer-deps
+RUN npm ci --omit=dev
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 CMD ["node", "server.js"]

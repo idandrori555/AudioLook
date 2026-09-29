@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Book, Chapter, Bookmark, TabType, FilterType } from '../types';
-import { INITIAL_BOOKS, INITIAL_BOOKMARKS } from '../data/mockData';
+
+// Fresh installs start empty; the library is built purely from user imports
+// persisted in localStorage.
+const INITIAL_BOOKS: Book[] = [];
+const INITIAL_BOOKMARKS: Bookmark[] = [];
 import {
   extractYouTubeId,
   extractYouTubePlaylistId,

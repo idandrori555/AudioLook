@@ -153,10 +153,7 @@ export default function PlayerView() {
           </button>
 
           {/* Center Brand & Book Label */}
-          <div className="flex flex-col items-center">
-            {/* <span className="text-[13px] font-medium tracking-tight text-[#e3e2e6]/90">אודיולוק</span> */}
-            {/* <span className="text-[11px] text-[#9d9ca4]">AudioLook Player</span> */}
-          </div>
+          <div className="flex flex-col items-center" />
 
           {/* Action: Chapter List drawer (For multi-chapter audiobooks or YouTube playlists) */}
           {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
