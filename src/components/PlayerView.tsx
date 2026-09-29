@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springSnappy, tx, useAppReducedMotion } from './motion';
 
 export default function PlayerView() {
   const {
@@ -29,20 +31,13 @@ export default function PlayerView() {
   } = useAudio();
 
   const [isSpeedMenuOpen, setIsSpeedMenuOpen] = useState(false);
-  const [bounceReplay, setBounceReplay] = useState(false);
-  const [bounceForward, setBounceForward] = useState(false);
+  // Nudge counters — bumped per tap so rapid ±10s spam re-triggers the spring
+  // via key remount instead of fighting a boolean + timeout (never gets stuck).
+  const [replayNudge, setReplayNudge] = useState(0);
+  const [forwardNudge, setForwardNudge] = useState(0);
   const scrubberRef = useRef<HTMLDivElement | null>(null);
-  const bounceReplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bounceForwardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragSeekTime, setDragSeekTime] = useState<number | null>(null);
-
-  // Cleanup bounce timers on unmount to avoid setState after unmount
-  useEffect(() => {
-    return () => {
-      if (bounceReplayTimeoutRef.current) clearTimeout(bounceReplayTimeoutRef.current);
-      if (bounceForwardTimeoutRef.current) clearTimeout(bounceForwardTimeoutRef.current);
-    };
-  }, []);
+  const reduced = useAppReducedMotion();
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -100,25 +95,13 @@ export default function PlayerView() {
     setDragSeekTime(null);
   };
 
-  const triggerBounce = (
-    setBounce: (v: boolean) => void,
-    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
-  ) => {
-    setBounce(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setBounce(false);
-      timerRef.current = null;
-    }, 150);
-  };
-
   const handleReplay10 = () => {
-    triggerBounce(setBounceReplay, bounceReplayTimeoutRef);
+    if (!reduced) setReplayNudge((n) => n + 1);
     jumpRelative(-10);
   };
 
   const handleForward10 = () => {
-    triggerBounce(setBounceForward, bounceForwardTimeoutRef);
+    if (!reduced) setForwardNudge((n) => n + 1);
     jumpRelative(10);
   };
 
@@ -230,14 +213,22 @@ export default function PlayerView() {
               <span className="text-[12px] text-white/40">טוען נגן וידאו מיוטיוב...</span>
             </div>
           ) : (
-            /* Standard or Audio-only Cover Artwork */
-            <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c] transition-transform duration-300 active:scale-[0.98]">
+            /* Standard or Audio-only Cover Artwork — shared-element target
+               for the library-thumbnail → player morph */
+            <motion.div
+              layoutId={`cover-${currentBook.id}`}
+              transition={tx(reduced, springSnappy)}
+              initial={reduced ? false : { scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileTap={reduced ? undefined : { scale: 0.98 }}
+              className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c]"
+            >
               <img
                 className="w-full h-full object-cover"
                 alt={currentBook.title}
                 src={currentBook.coverUrl}
               />
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -300,107 +291,6 @@ export default function PlayerView() {
 
         {/* Tactile Ergonomic Primary Controls */}
         <div className="flex items-center justify-center gap-7 sm:gap-9 mb-6">
-          {/* Previous Chapter (For multi-chapter audiobooks or YouTube playlists) */}
-          {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
-            <button
-              onClick={previousChapter}
-              aria-label="פרק קודם"
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
-              title="פרק קודם"
-            >
-              <span className="material-symbols-outlined text-[26px]">skip_next</span>
-            </button>
-          )}
-
-          {/* Jump Forward 10s */}
-          <button
-            onClick={handleForward10}
-            aria-label="10 שניות קדימה"
-            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${bounceForward ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
-              }`}
-            id="btn-forward-10"
-            title="קפוץ 10 שניות קדימה"
-          >
-            <svg
-              className="w-[30px] h-[30px]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <polyline points="21 3 21 8 16 8" />
-              <text
-                x="12"
-                y="15.2"
-                textAnchor="middle"
-                fontSize="8"
-                fontFamily="Rubik, sans-serif"
-                fontWeight="700"
-                fill="currentColor"
-                stroke="none"
-              >
-                10
-              </text>
-            </svg>
-          </button>
-
-          {/* Centerpiece Warm Amber Play/Pause */}
-          <button
-            onClick={playPause}
-            aria-label="נגן או השהה"
-            className="w-[72px] h-[72px] rounded-full bg-[#e89838] text-[#2c1700] flex items-center justify-center shadow-[0_8px_24px_rgba(232,152,56,0.3)] hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-            id="main-play-btn"
-          >
-            <span
-              className="material-symbols-outlined text-[38px]"
-              id="play-pause-icon"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              {isPlaying ? 'pause' : 'play_arrow'}
-            </span>
-          </button>
-
-
-          {/* Jump Back 10s */}
-          <button
-            onClick={handleReplay10}
-            aria-label="10 שניות אחורה"
-            className={`relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-all cursor-pointer ${bounceReplay ? 'scale-90 text-[#ffb86b]' : 'active:scale-90'
-              }`}
-            id="btn-replay-10"
-            title="קפוץ 10 שניות אחורה"
-          >
-            <svg
-              className="w-[30px] h-[30px]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <polyline points="3 3 3 8 8 8" />
-              <text
-                x="12"
-                y="15.2"
-                textAnchor="middle"
-                fontSize="8"
-                fontFamily="Rubik, sans-serif"
-                fontWeight="700"
-                fill="currentColor"
-                stroke="none"
-              >
-                10
-              </text>
-            </svg>
-          </button>
-
-
-
           {/* Next Chapter (For multi-chapter audiobooks or YouTube playlists) */}
           {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
             <button
@@ -409,7 +299,132 @@ export default function PlayerView() {
               className="w-10 h-10 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
               title="פרק הבא"
             >
-              <span className="material-symbols-outlined text-[26px]">skip_previous</span>
+              <span className="material-symbols-outlined text-[26px]">keyboard_double_arrow_right</span>
+            </button>
+          )}
+
+          {/* Jump Forward 10s — rotary nudge re-triggers per tap via key */}
+          <motion.button
+            onClick={handleForward10}
+            whileTap={reduced ? undefined : { scale: 0.88 }}
+            aria-label="10 שניות קדימה"
+            className="relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
+            id="btn-forward-10"
+            title="קפוץ 10 שניות קדימה"
+          >
+            <motion.span
+              key={forwardNudge}
+              initial={reduced ? false : { rotate: 24, scale: 0.88 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={tx(reduced, springSnappy)}
+              className="flex items-center justify-center"
+            >
+              <svg
+                className="w-[30px] h-[30px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <polyline points="21 3 21 8 16 8" />
+                <text
+                  x="12"
+                  y="15.2"
+                  textAnchor="middle"
+                  fontSize="8"
+                  fontFamily="Rubik, sans-serif"
+                  fontWeight="700"
+                  fill="currentColor"
+                  stroke="none"
+                >
+                  10
+                </text>
+              </svg>
+            </motion.span>
+          </motion.button>
+
+          {/* Centerpiece Warm Amber Play/Pause */}
+          <motion.button
+            onClick={playPause}
+            whileTap={reduced ? undefined : { scale: 0.92 }}
+            aria-label="נגן או השהה"
+            className="w-[72px] h-[72px] rounded-full bg-[#e89838] text-[#2c1700] flex items-center justify-center shadow-[0_8px_24px_rgba(232,152,56,0.3)] hover:brightness-105 transition-all cursor-pointer"
+            id="main-play-btn"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={isPlaying ? 'pause' : 'play'}
+                initial={reduced ? false : { scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={reduced ? { opacity: 0 } : { scale: 0.6, opacity: 0 }}
+                transition={tx(reduced, springSnappy)}
+                className="material-symbols-outlined text-[38px] flex items-center justify-center"
+                id="play-pause-icon"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                {isPlaying ? 'pause' : 'play_arrow'}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
+
+
+          {/* Jump Back 10s — rotary nudge re-triggers per tap via key */}
+          <motion.button
+            onClick={handleReplay10}
+            whileTap={reduced ? undefined : { scale: 0.88 }}
+            aria-label="10 שניות אחורה"
+            className="relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
+            id="btn-replay-10"
+            title="קפוץ 10 שניות אחורה"
+          >
+            <motion.span
+              key={replayNudge}
+              initial={reduced ? false : { rotate: -24, scale: 0.88 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={tx(reduced, springSnappy)}
+              className="flex items-center justify-center"
+            >
+              <svg
+                className="w-[30px] h-[30px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <polyline points="3 3 3 8 8 8" />
+                <text
+                  x="12"
+                  y="15.2"
+                  textAnchor="middle"
+                  fontSize="8"
+                  fontFamily="Rubik, sans-serif"
+                  fontWeight="700"
+                  fill="currentColor"
+                  stroke="none"
+                >
+                  10
+                </text>
+              </svg>
+            </motion.span>
+          </motion.button>
+
+
+
+          {/* Previous Chapter (For multi-chapter audiobooks or YouTube playlists) */}
+          {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
+            <button
+              onClick={previousChapter}
+              aria-label="פרק קודם"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
+              title="פרק קודם"
+            >
+              <span className="material-symbols-outlined text-[26px]">keyboard_double_arrow_left</span>
             </button>
           )}
         </div>

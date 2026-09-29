@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { pressTap, springSnappy, tx, useAppReducedMotion } from './motion';
 import AddBookModal from './AddBookModal';
 
 export default function LibraryView() {
@@ -30,6 +32,7 @@ export default function LibraryView() {
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success'>('idle');
   const [pendingDeleteBookId, setPendingDeleteBookId] = useState<string | null>(null);
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+  const reduced = useAppReducedMotion();
 
   const pendingDeleteBook = pendingDeleteBookId
     ? books.find((b) => b.id === pendingDeleteBookId) ?? null
@@ -335,14 +338,19 @@ export default function LibraryView() {
               const isDone = book.category === 'completed';
 
               return (
-                <div
+                <motion.div
                   key={book.id}
                   onClick={() => selectBook(book.id, true, false)}
-                  className={`group bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl p-3 flex items-center gap-3.5 transition-all cursor-pointer ${isDone ? 'opacity-85' : ''
+                  whileTap={reduced ? undefined : pressTap}
+                  className={`group bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl p-3 flex items-center gap-3.5 transition-colors cursor-pointer ${isDone ? 'opacity-85' : ''
                     } ${isSelected ? 'border-[#ffb86b]/30 bg-[#1d1e23]' : ''}`}
                 >
-                  {/* Thumbnail */}
-                  <div className="relative w-14 h-19 rounded-md overflow-hidden flex-shrink-0 shadow-sm bg-[#0a0b0d] ring-1 ring-white/5">
+                  {/* Thumbnail — shared-element source for the player cover morph */}
+                  <motion.div
+                    layoutId={`cover-${book.id}`}
+                    transition={tx(reduced, springSnappy)}
+                    className="relative w-14 h-19 rounded-md overflow-hidden flex-shrink-0 shadow-sm bg-[#0a0b0d] ring-1 ring-white/5"
+                  >
                     <img
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       alt={book.title}
@@ -353,7 +361,7 @@ export default function LibraryView() {
                         <span className="material-symbols-outlined text-[16px] text-white/90">done</span>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
 
                   {/* Details */}
                   <div className="flex flex-col min-w-0 flex-1 justify-center gap-1">
@@ -452,7 +460,7 @@ export default function LibraryView() {
                       </span>
                     </button>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

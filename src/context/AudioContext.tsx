@@ -413,6 +413,22 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentBook?.id, ytPlayer, isYtReady]);
 
+  // Push current position to the OS (lock-screen scrubber, earphones, car BT).
+  // Browsers throw on invalid values (no metadata yet, duration 0) — safe to ignore.
+  const syncMediaPositionState = useCallback(() => {
+    try {
+      const ms = navigator.mediaSession;
+      if (!ms?.setPositionState) return;
+      const dur = Math.floor(duration);
+      const pos = Math.floor(currentTimeRef.current);
+      if (dur > 0 && pos >= 0 && pos <= dur) {
+        ms.setPositionState({ duration: dur, playbackRate: playbackSpeed, position: pos });
+      }
+    } catch {
+      // Invalid state — the next tick will retry once values settle
+    }
+  }, [duration, playbackSpeed]);
+
   // YouTube polling interval to keep time & duration accurate and save progress
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -447,6 +463,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
               setDuration(Math.floor(ytDur));
             }
           }
+          syncMediaPositionState();
         } catch {
           // ignore
         }
@@ -489,6 +506,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           return next;
         });
 
+        syncMediaPositionState();
+
         setSleepTimerSecondsRemaining((prev) => {
           if (prev === null) return null;
           if (prev <= 1) {
@@ -505,7 +524,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow]);
+  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow, syncMediaPositionState]);
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -543,6 +562,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
     saveProgressNow(Math.floor(target));
   }, [ytPlayer, isYtReady, saveProgressNow]);
+
+
 
   const playPause = useCallback(() => {
     if (!currentBook) {
@@ -717,6 +738,89 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       showToast('תחילת הפרק');
     }
   }, [currentBook, selectChapter, seekTo]);
+
+  // ---------- Media Session API: earphones / lock-screen / OS media keys ----------
+  // OS-level gesture map (device taps become these actions):
+  //   play/pause tap → toggle (state-aware, never double-toggles)
+  //   next-track (e.g. triple-tap) → next chapter
+  //   previous-track (e.g. triple-tap back) → restart chapter if >3s in, else previous
+  //   hold-to-seek / lock-screen scrub → ±seek / exact seek
+
+  // What the OS shows: book + chapter + cover art
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      if (!currentBook) {
+        navigator.mediaSession.playbackState = 'none';
+        return;
+      }
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentChapter
+          ? `פרק ${currentChapter.number}: ${currentChapter.title}`
+          : currentBook.title,
+        artist: currentBook.author || '',
+        album: currentBook.title || '',
+        artwork: currentBook.coverUrl ? [{ src: currentBook.coverUrl }] : [],
+      });
+    } catch {
+      // Media Session unsupported — earphone taps fall back to OS defaults
+    }
+  }, [currentBook, currentChapter]);
+
+  // Whether the OS shows ▶ or ⏸ (lock-screen, earphone LED/hub, car display)
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = !currentBook
+        ? 'none'
+        : isPlaying
+          ? 'playing'
+          : 'paused';
+    } catch {}
+  }, [currentBook, isPlaying]);
+
+  // Which earphone/OS gestures the app responds to
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+    const set = (
+      action: MediaSessionAction,
+      handler: ((details: MediaSessionActionDetails) => void) | null,
+    ) => {
+      try {
+        ms.setActionHandler(action, handler);
+      } catch {
+        // Action unsupported on this browser — skip it
+      }
+    };
+    set('play', () => {
+      if (!isPlayingRef.current) playPause();
+    });
+    set('pause', () => {
+      if (isPlayingRef.current) playPause();
+    });
+    set('nexttrack', () => {
+      nextChapter();
+    });
+    set('previoustrack', () => {
+      if (currentTimeRef.current > 3) seekTo(0);
+      else previousChapter();
+    });
+    set('seekbackward', (d) => {
+      jumpRelative(-(d.seekOffset || 10));
+    });
+    set('seekforward', (d) => {
+      jumpRelative(d.seekOffset || 10);
+    });
+    set('seekto', (d) => {
+      if (typeof d.seekTime === 'number') seekTo(d.seekTime);
+    });
+    return () => {
+      (
+        ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto'] as MediaSessionAction[]
+      ).forEach((a) => set(a, null));
+    };
+  }, [playPause, nextChapter, previousChapter, seekTo, jumpRelative]);
 
   const selectBook = (bookId: string, autoPlay = true, navigateToPlayer = true) => {
     // 1. Save progress in the outgoing book

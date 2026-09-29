@@ -1,9 +1,12 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springSnappy, tx, useAppReducedMotion } from './motion';
 import { TabType } from '../types';
 
 export default function BottomNav() {
   const { activeTab, setActiveTab } = useAudio();
+  const reduced = useAppReducedMotion();
 
   const tabs: { id: TabType; label: string; icon: string }[] = [
     { id: 'library', label: 'ספרייה', icon: 'local_library' },
@@ -22,19 +25,26 @@ export default function BottomNav() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center gap-1 w-14 transition-colors cursor-pointer ${
+              className={`relative flex flex-col items-center justify-center gap-1 w-14 py-1 transition-colors cursor-pointer ${
                 isActive ? 'text-[#ffb86b]' : 'text-white/45 hover:text-white'
               }`}
             >
-              <span
-                className={`material-symbols-outlined text-[22px] transition-transform ${
-                  isActive ? 'scale-110 font-bold' : ''
-                }`}
+              {isActive && (
+                <motion.span
+                  layoutId="nav-active-pill"
+                  transition={tx(reduced, springSnappy)}
+                  className="absolute inset-0 rounded-xl bg-[#ffb86b]/10"
+                />
+              )}
+              <motion.span
+                animate={reduced ? undefined : { scale: isActive ? 1.12 : 1 }}
+                transition={tx(reduced, springSnappy)}
+                className="material-symbols-outlined text-[22px] relative"
                 style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {tab.icon}
-              </span>
-              <span className="text-[11px] font-medium">{tab.label}</span>
+              </motion.span>
+              <span className="text-[11px] font-medium relative">{tab.label}</span>
             </button>
           );
         })}
