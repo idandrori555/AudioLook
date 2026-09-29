@@ -80,6 +80,26 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on http://0.0.0.0:${PORT}`);
 });
+
+// Graceful shutdown: finish in-flight requests on SIGTERM/SIGINT
+// (docker stop, compose down, host reboot) instead of dropping them.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Received ${signal}, closing server...`);
+  server.close(() => {
+    console.log('Server closed, exiting.');
+    process.exit(0);
+  });
+  // Failsafe: force exit if connections linger
+  setTimeout(() => {
+    console.warn('Forcing shutdown after timeout.');
+    process.exit(1);
+  }, 10000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

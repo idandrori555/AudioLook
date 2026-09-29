@@ -1,0 +1,44 @@
+# AudioLook on your home server.
+#
+# Plain LAN (no PWA install — browsers refuse SW on http://IP):
+#   docker compose up -d --build
+#   → http://<server-ip>:3000
+#
+# Phone-installable PWA (HTTPS = secure context) via Cloudflare Tunnel,
+# free, no open ports, no static IP. One-time setup:
+#   1. cloudflared tunnel login   (on the laptop, once)
+#   2. cloudflared tunnel create audiolook
+#   3. Route it (quick tunnel or dashboard) to http://audiolook:3000
+#   4. Put the token in a .env file next to this file:
+#        CLOUDFLARED_TOKEN=eyJh...
+#   docker compose --profile tunnel up -d --build
+#   → https://<your-hostname>  (installable on your phone)
+
+services:
+  audiolook:
+    build: .
+    image: audiolook:latest
+    container_name: audiolook
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Optional HTTPS tunnel for phone PWA installs. Disabled by default.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: audiolook-tunnel
+    restart: unless-stopped
+    depends_on:
+      audiolook:
+        condition: service_healthy
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}
+    profiles: ["tunnel"]
