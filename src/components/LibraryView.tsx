@@ -189,19 +189,6 @@ export default function LibraryView() {
                   ? 'סרטון פעיל'
                   : 'האזנה נוכחית'}
             </span>
-            <span className="text-[#ffb86b]/90 text-[12px] flex items-center gap-1">
-              <span
-                className={`inline-block w-1.5 h-1.5 rounded-full bg-[#ffb86b] ${isPlaying ? 'animate-pulse' : ''
-                  }`}
-              />
-              {currentBook.isPlaylist && currentChapter
-                ? `פרק ${currentChapter.number} מתוך ${currentBook.totalChapters}`
-                : currentBook.youtubeId
-                  ? 'וידאו מלא'
-                  : currentChapter
-                    ? `פרק ${currentChapter.number} מתוך ${currentBook.totalChapters}`
-                    : 'ספר מלא'}
-            </span>
           </div>
 
           <div className="bg-[#1d1e23] rounded-2xl p-4 border border-white/[0.05] hover:border-white/[0.08] transition-all flex flex-col gap-4 shadow-lg shadow-black/20">
@@ -397,11 +384,6 @@ export default function LibraryView() {
                     {isDone && (
                       <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
                         <span className="material-symbols-outlined text-[16px] text-white/90">done</span>
-                      </div>
-                    )}
-                    {isSelected && isPlaying && (
-                      <div className="absolute inset-0 bg-[#ffb86b]/20 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-[#ffb86b] animate-ping" />
                       </div>
                     )}
                   </div>

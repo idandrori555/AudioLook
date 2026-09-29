@@ -35,17 +35,12 @@ export default function MiniPlayer() {
 
         {/* Mini Book Art & Track info */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 ring-1 ring-white/10 relative">
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 ring-1 ring-white/10">
             <img
               className="w-full h-full object-cover"
               alt={currentBook.title}
               src={currentBook.coverUrl}
             />
-            {isPlaying && (
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ffb86b] animate-ping" />
-              </div>
-            )}
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-[14px] font-medium text-white truncate leading-tight group-hover:text-[#ffb86b] transition-colors">
