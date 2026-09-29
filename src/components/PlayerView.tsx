@@ -117,7 +117,7 @@ export default function PlayerView() {
 
   if (!currentBook) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav justify-center items-center p-6 text-center" dir="rtl">
+      <div className="min-h-[calc(100dvh-4rem)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav justify-center items-center p-6 text-center" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-white/[0.04] text-[#ffb86b] flex items-center justify-center mb-4">
           <span className="material-symbols-outlined text-[32px]">headphones</span>
         </div>
@@ -139,7 +139,7 @@ export default function PlayerView() {
   const isYouTubeBook = Boolean(currentBook.youtubeId);
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav">
+    <div className="relative min-h-[calc(100dvh-4rem)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav">
       {/* Header */}
       <header className="sticky top-0 inset-x-0 z-40 bg-[#121316]/90 backdrop-blur-md pt-safe border-b border-white/[0.05]">
         <div className="h-14 px-5 flex items-center justify-between max-w-md mx-auto">
@@ -218,7 +218,7 @@ export default function PlayerView() {
               initial={reduced ? false : { scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               whileTap={reduced ? undefined : { scale: 0.98 }}
-              className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c]"
+              className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c]"
             >
               <img
                 className="w-full h-full object-cover"
@@ -287,13 +287,13 @@ export default function PlayerView() {
         </div>
 
         {/* Tactile Ergonomic Primary Controls */}
-        <div className="flex items-center justify-center gap-7 sm:gap-9 mb-6">
+        <div className="flex items-center justify-center gap-3 min-[380px]:gap-6 sm:gap-9 mb-6">
           {/* Next Chapter (For multi-chapter audiobooks or YouTube playlists) */}
           {(currentBook.isPlaylist || (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1)) && (
             <button
               onClick={nextChapter}
               aria-label="פרק הבא"
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
+              className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
               title="פרק הבא"
             >
               <span className="material-symbols-outlined text-[26px]">keyboard_double_arrow_right</span>
@@ -305,7 +305,7 @@ export default function PlayerView() {
             onClick={handleForward10}
             whileTap={reduced ? undefined : { scale: 0.88 }}
             aria-label="10 שניות קדימה"
-            className="relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
+            className="relative w-10 h-10 min-[380px]:w-12 min-[380px]:h-12 shrink-0 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
             id="btn-forward-10"
             title="קפוץ 10 שניות קדימה"
           >
@@ -348,7 +348,7 @@ export default function PlayerView() {
             onClick={playPause}
             whileTap={reduced ? undefined : { scale: 0.92 }}
             aria-label="נגן או השהה"
-            className="w-[72px] h-[72px] rounded-full bg-[#e89838] text-[#2c1700] flex items-center justify-center shadow-[0_8px_24px_rgba(232,152,56,0.3)] hover:brightness-105 transition-all cursor-pointer"
+            className="w-16 h-16 min-[380px]:w-[72px] min-[380px]:h-[72px] shrink-0 rounded-full bg-[#e89838] text-[#2c1700] flex items-center justify-center shadow-[0_8px_24px_rgba(232,152,56,0.3)] hover:brightness-105 transition-all cursor-pointer"
             id="main-play-btn"
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -373,7 +373,7 @@ export default function PlayerView() {
             onClick={handleReplay10}
             whileTap={reduced ? undefined : { scale: 0.88 }}
             aria-label="10 שניות אחורה"
-            className="relative w-12 h-12 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
+            className="relative w-10 h-10 min-[380px]:w-12 min-[380px]:h-12 shrink-0 rounded-full flex items-center justify-center text-[#e3e2e6] hover:text-[#ffb86b] transition-colors cursor-pointer"
             id="btn-replay-10"
             title="קפוץ 10 שניות אחורה"
           >
@@ -418,7 +418,7 @@ export default function PlayerView() {
             <button
               onClick={previousChapter}
               aria-label="פרק קודם"
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
+              className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-[#9d9ca4] hover:text-[#e3e2e6] active:scale-90 transition-all cursor-pointer"
               title="פרק קודם"
             >
               <span className="material-symbols-outlined text-[26px]">keyboard_double_arrow_left</span>
@@ -427,7 +427,8 @@ export default function PlayerView() {
         </div>
 
         {/* Secondary Quiet Utility Strip (Speed, Sleep Timer, Bookmark) */}
-        <div className="relative flex items-center justify-around py-3 px-2 rounded-2xl bg-white/[0.03] border border-white/[0.05] mb-5">
+        <div className="glass-static relative flex items-center justify-around flex-wrap gap-y-2 py-3 px-1 min-[380px]:px-2 rounded-2xl mb-5">
+          <div className="glass-glint" />
           {/* Speed Selector */}
           <div className="relative">
             <button
@@ -444,7 +445,7 @@ export default function PlayerView() {
             {/* Floating Speed Menu */}
             {isSpeedMenuOpen && (
               <div
-                className="absolute bottom-11 right-1/2 translate-x-1/2 bg-[#1f2024] border border-white/[0.08] rounded-xl p-1.5 shadow-xl z-30 flex flex-col gap-1 min-w-[70px]"
+                className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px]"
                 id="speed-menu"
               >
                 {speedOptions.map((speed) => (
@@ -515,7 +516,7 @@ export default function PlayerView() {
         {(currentBook.isPlaylist || !isYouTubeBook) && nextChapterObj && (
           <div
             onClick={nextChapter}
-            className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] text-[#9d9ca4] text-[12px] hover:bg-white/[0.05] transition-colors cursor-pointer"
+            className="glass-static flex items-center justify-between px-4 py-2.5 rounded-xl text-[#9d9ca4] text-[12px] hover:border-white/[0.14] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2 truncate">
               <span className="text-[#e3e2e6]/60 font-medium">הבא:</span>

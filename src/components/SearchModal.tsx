@@ -19,9 +19,10 @@ export default function SearchModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/75 backdrop-blur-md">
       <div
-        className="w-full max-w-md bg-[#1e1f24] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+        className="glass relative w-full max-w-md rounded-2xl flex flex-col max-h-[80vh] overflow-hidden"
         dir="rtl"
       >
+        <div className="glass-glint" />
         {/* Search input header */}
         <div className="p-3 border-b border-white/[0.06] flex items-center gap-2">
           <span className="material-symbols-outlined text-white/40 text-[20px] mr-1">search</span>

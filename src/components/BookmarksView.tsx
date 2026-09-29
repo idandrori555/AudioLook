@@ -63,7 +63,7 @@ export default function BookmarksView() {
       </div>
 
       {bookmarks.length === 0 ? (
-        <div className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-[#16171b] rounded-2xl border border-white/[0.04] p-6">
+        <div className="glass-static py-16 text-center flex flex-col items-center justify-center gap-3 rounded-2xl p-6">
           <span className="material-symbols-outlined text-[48px] text-white/20">bookmark_border</span>
           <p className="text-white/70 text-[15px]">טרם נשמרו סימניות</p>
           <p className="text-white/40 text-[12px] max-w-xs">
@@ -75,7 +75,7 @@ export default function BookmarksView() {
           {bookmarks.map((bm) => (
             <div
               key={bm.id}
-              className="bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] rounded-2xl p-3.5 flex items-start gap-3.5 transition-all"
+              className="glass-static rounded-2xl p-3.5 flex items-start gap-3.5 hover:border-white/[0.14] transition-colors"
             >
               <div
                 onClick={() => handleJumpToBookmark(bm.bookId, bm.timestampSeconds, bm.chapterNumber)}

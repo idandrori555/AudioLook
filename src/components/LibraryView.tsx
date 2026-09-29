@@ -99,7 +99,8 @@ export default function LibraryView() {
       </div>
 
       {/* Quiet Integrated Quick-Import Field */}
-      <div className="relative flex items-center bg-[#16171b] border border-white/[0.06] rounded-2xl p-1.5 pr-3.5 focus-within:border-[#ffb86b]/40 focus-within:bg-[#1d1e23] transition-all shadow-sm">
+      <div className="glass-static relative flex items-center rounded-2xl p-1.5 pr-3.5 focus-within:!border-[#ffb86b]/40 transition-colors overflow-hidden">
+        <div className="glass-glint" />
         <span className="material-symbols-outlined text-white/40 text-[19px] ml-2 flex-shrink-0">
           add_link
         </span>
@@ -141,7 +142,7 @@ export default function LibraryView() {
         <button
           onClick={() => setActiveFilter('all')}
           className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'all'
-            ? 'bg-white/[0.12] text-white'
+            ? 'bg-[#ffb86b]/15 text-[#ffb86b] ring-1 ring-inset ring-[#ffb86b]/25'
             : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
             }`}
         >
@@ -150,7 +151,7 @@ export default function LibraryView() {
         <button
           onClick={() => setActiveFilter('listening')}
           className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'listening'
-            ? 'bg-white/[0.12] text-white'
+            ? 'bg-[#ffb86b]/15 text-[#ffb86b] ring-1 ring-inset ring-[#ffb86b]/25'
             : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
             }`}
         >
@@ -159,7 +160,7 @@ export default function LibraryView() {
         <button
           onClick={() => setActiveFilter('completed')}
           className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'completed'
-            ? 'bg-white/[0.12] text-white'
+            ? 'bg-[#ffb86b]/15 text-[#ffb86b] ring-1 ring-inset ring-[#ffb86b]/25'
             : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
             }`}
         >
@@ -168,7 +169,7 @@ export default function LibraryView() {
         <button
           onClick={() => setActiveFilter('queued')}
           className={`filter-tab px-4 py-2 rounded-full text-[13px] font-medium transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'queued'
-            ? 'bg-white/[0.12] text-white'
+            ? 'bg-[#ffb86b]/15 text-[#ffb86b] ring-1 ring-inset ring-[#ffb86b]/25'
             : 'bg-transparent text-white/60 hover:text-white hover:bg-white/[0.05]'
             }`}
         >
@@ -189,7 +190,8 @@ export default function LibraryView() {
             </span>
           </div>
 
-          <div className="bg-[#1d1e23] rounded-2xl p-4 border border-white/[0.05] hover:border-white/[0.08] transition-all flex flex-col gap-4 shadow-lg shadow-black/20">
+          <div className="glass-static relative overflow-hidden rounded-2xl p-4 hover:border-white/[0.14] transition-colors flex flex-col gap-4">
+            <div className="glass-glint" />
             <div
               className="flex items-start gap-4 cursor-pointer"
               onClick={() => setActiveTab('player')}
@@ -249,15 +251,15 @@ export default function LibraryView() {
                   if (!isPlaying) playPause();
                   setActiveTab('player');
                 }}
-                className="flex-1 h-11 rounded-xl bg-[#ffb86b] hover:bg-[#ffc685] text-[#492900] font-medium text-[14px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-[#ffb86b]/10 cursor-pointer"
+                className="flex-1 min-w-0 h-11 rounded-xl bg-[#ffb86b] hover:bg-[#ffc685] text-[#492900] font-medium text-[14px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-[#ffb86b]/10 cursor-pointer px-2"
               >
                 <span
-                  className="material-symbols-outlined text-[20px]"
+                  className="material-symbols-outlined text-[20px] shrink-0"
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
                   {isPlaying ? 'pause' : 'play_arrow'}
                 </span>
-                <span>
+                <span className="truncate">
                   {isPlaying
                     ? 'נגן כעת (פתח נגן)'
                     : currentTime > 0
@@ -285,7 +287,7 @@ export default function LibraryView() {
           </div>
         </section>
       ) : (
-        <section className="bg-[#18191c] rounded-2xl p-6 border border-white/[0.06] text-center flex flex-col items-center justify-center gap-3">
+        <section className="glass-static rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
           <div className="w-14 h-14 rounded-full bg-white/[0.04] text-[#ffb86b] flex items-center justify-center">
             <span className="material-symbols-outlined text-[30px]">local_library</span>
           </div>
@@ -306,7 +308,7 @@ export default function LibraryView() {
         </div>
 
         {filteredBooks.length === 0 ? (
-          <div className="py-8 text-center text-white/40 text-[13px] bg-[#16171b]/40 rounded-xl border border-white/[0.04]">
+          <div className="glass-static py-8 text-center text-white/40 text-[13px] rounded-xl">
             אין פריטים להצגה בסינון זה
           </div>
         ) : (
@@ -325,8 +327,8 @@ export default function LibraryView() {
                   key={book.id}
                   onClick={() => selectBook(book.id, true, false)}
                   whileTap={reduced ? undefined : pressTap}
-                  className={`group bg-[#16171b] hover:bg-[#1d1e23] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl p-3 flex items-center gap-3.5 transition-colors cursor-pointer ${isDone ? 'opacity-85' : ''
-                    } ${isSelected ? 'border-[#ffb86b]/30 bg-[#1d1e23]' : ''}`}
+                  className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-white/[0.14] transition-colors cursor-pointer ${isDone ? 'opacity-85' : ''
+                    } ${isSelected ? '!border-[#ffb86b]/40' : ''}`}
                 >
                   {/* Thumbnail — shared-element source for the player cover morph */}
                   <motion.div
@@ -451,7 +453,7 @@ export default function LibraryView() {
       </section>
 
       {/* Subtle Sleep Companion Bar */}
-      <div className="bg-[#16171b]/60 border border-white/[0.04] rounded-2xl px-4 py-3 flex items-center justify-between text-[#9a9da6]">
+      <div className="glass-static rounded-2xl px-4 py-3 flex items-center justify-between text-[#9a9da6]">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[#ffb86b]/80 text-[20px]">bedtime</span>
           <div className="flex flex-col">
@@ -478,10 +480,11 @@ export default function LibraryView() {
           onClick={() => setPendingDeleteBookId(null)}
         >
           <div
-            className="w-full max-w-sm bg-[#1e1f24] rounded-2xl border border-white/[0.08] p-5 shadow-2xl flex flex-col gap-4 text-right"
+            className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
             dir="rtl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="glass-glint" />
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-red-400 text-[22px]">delete</span>
               <h3 className="text-[17px] font-semibold text-white">למחוק את הספר?</h3>

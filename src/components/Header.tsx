@@ -5,9 +5,9 @@ export default function Header() {
   const { setIsSearchModalOpen, setIsAccountModalOpen } = useAudio();
 
   return (
-    <header className="sticky top-0 z-40 bg-[#121316]/90 backdrop-blur-xl border-b border-white/[0.04]">
-      <div className="pt-safe" />
-      <div className="h-14 px-5 flex items-center justify-between max-w-xl mx-auto">
+    <header className="sticky top-[calc(0.5rem+env(safe-area-inset-top,0px))] z-40 px-4 pt-safe">
+      <div className="glass relative overflow-hidden rounded-2xl h-14 px-4 flex items-center justify-between max-w-xl mx-auto">
+        <div className="glass-glint" />
         <div className="flex items-center gap-2.5">
           <img
             alt="AudioLook"

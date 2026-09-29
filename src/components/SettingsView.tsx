@@ -26,7 +26,7 @@ export default function SettingsView() {
       </div>
 
       {/* Audio Playback Preferences */}
-      <section className="bg-[#16171b] rounded-2xl p-4 border border-white/[0.04] flex flex-col gap-4">
+      <section className="glass-static rounded-2xl p-4 flex flex-col gap-4">
         <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">tune</span>
           <span>נגינה ושמע</span>
@@ -84,7 +84,7 @@ export default function SettingsView() {
       </section>
 
       {/* Storage and Downloads */}
-      <section className="bg-[#16171b] rounded-2xl p-4 border border-white/[0.04] flex flex-col gap-4">
+      <section className="glass-static rounded-2xl p-4 flex flex-col gap-4">
         <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">cloud_download</span>
           <span>אחסון והורדות אופליין</span>

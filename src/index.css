@@ -11,7 +11,8 @@
     --color-primary-container: #e89838;
     --color-on-primary: #492900;
     --sab: env(safe-area-inset-bottom, 0px);
-    --bottom-nav-h: 4rem;
+    /* Floating glass pill (~48px) + 12px lift above the screen edge */
+    --bottom-nav-h: 3.75rem;
   }
 
   html, body {
@@ -42,9 +43,9 @@
     bottom: calc(var(--bottom-nav-h, 4rem) + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
 
-  /* Scroll content must clear MiniPlayer + BottomNav + safe-area. */
+  /* Scroll content must clear MiniPlayer + floating nav + safe-area. */
   .page-with-dock {
-    padding-bottom: calc(9rem + var(--sab, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(8rem + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
   .page-with-nav {
     padding-bottom: calc(5rem + var(--sab, env(safe-area-inset-bottom, 0px)));
@@ -57,6 +58,36 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Liquid-glass surface system (matches the floating nav pill).
+   .glass = full treatment for fixed floating bars (real backdrop to refract).
+   .glass-static = same look for scrolling cards (no backdrop-blur: dozens of
+   blurred rows would jank low-end phones, and blur is invisible over a flat bg). */
+.glass {
+  background: rgb(29 30 35 / 0.7);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.45);
+}
+
+.glass-static {
+  background: rgb(29 30 35 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  box-shadow:
+    0 12px 32px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Specular top-light line for glass panels (place first child, parent needs relative + overflow-hidden) */
+.glass-glint {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 2rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to left, transparent, rgb(255 255 255 / 0.5), transparent);
 }
 
 /* Material symbol styling helper */

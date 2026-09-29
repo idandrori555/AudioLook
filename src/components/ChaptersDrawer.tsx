@@ -15,7 +15,7 @@ export default function ChaptersDrawer() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm transition-opacity">
       <div
-        className="w-full max-w-md bg-[#18191c] h-full flex flex-col shadow-2xl border-r border-white/[0.08] animate-in slide-in-from-right duration-200"
+        className="glass relative w-full max-w-md h-full flex flex-col !rounded-none !border-y-0 !border-l-0"
         dir="rtl"
       >
         {/* Drawer Header */}
@@ -60,10 +60,10 @@ export default function ChaptersDrawer() {
                     selectChapter(index);
                     setIsChaptersDrawerOpen(false);
                   }}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  className={`glass-static p-3.5 rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-3 ${
                     isCurrent
-                      ? 'bg-[#22242a] border-[#ffb86b]/40 text-[#ffb86b] shadow-md shadow-black/20'
-                      : 'bg-[#1f2024]/60 hover:bg-[#1f2024] border-white/[0.04] text-white/90'
+                      ? '!border-[#ffb86b]/40 text-[#ffb86b]'
+                      : 'text-white/90 hover:border-white/[0.14]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">

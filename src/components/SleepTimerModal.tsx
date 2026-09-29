@@ -23,9 +23,10 @@ export default function SleepTimerModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
       <div
-        className="w-full max-w-sm bg-[#1e1f24] rounded-2xl border border-white/[0.08] p-5 shadow-2xl flex flex-col gap-4 text-right"
+        className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
         dir="rtl"
       >
+        <div className="glass-glint" />
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#ffb86b] text-[22px]">bedtime</span>

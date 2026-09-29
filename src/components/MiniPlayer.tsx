@@ -36,8 +36,9 @@ export default function MiniPlayer() {
       <motion.div
         onClick={() => setActiveTab('player')}
         whileTap={reduced ? undefined : pressTap}
-        className="relative overflow-hidden bg-[#24252a]/95 backdrop-blur-2xl rounded-2xl p-2.5 px-3 border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.14] transition-colors group"
+        className="glass relative overflow-hidden rounded-2xl p-2.5 px-3 flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.2] transition-colors group"
       >
+        <div className="glass-glint" />
         {/* Subtle top/bottom progress indicator line (no transition — updates every 500ms) */}
         <div className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06] pointer-events-none">
           <div

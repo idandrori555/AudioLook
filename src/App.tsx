@@ -21,7 +21,7 @@ function AppContent() {
   const reduced = useAppReducedMotion();
 
   return (
-    <div className="min-h-screen bg-[#121316] text-[#edeef2] flex flex-col font-sans select-none" dir="rtl">
+    <div className="min-h-dvh bg-[#121316] text-[#edeef2] flex flex-col font-sans select-none" dir="rtl">
       {/* Show header for library, bookmarks, settings tabs */}
       {activeTab !== 'player' && <Header />}
 
