@@ -443,9 +443,15 @@ export default function PlayerView() {
             </button>
 
             {/* Floating Speed Menu */}
+            <AnimatePresence>
             {isSpeedMenuOpen && (
-              <div
-                className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px]"
+              <motion.div
+                key="speed-menu"
+                initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 4 }}
+                transition={tx(reduced, springSnappy)}
+                className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px] origin-bottom"
                 id="speed-menu"
               >
                 {speedOptions.map((speed) => (
@@ -463,8 +469,9 @@ export default function PlayerView() {
                     {speed}x
                   </button>
                 ))}
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
 
           <div className="w-[1px] h-4 bg-white/[0.08]" />
@@ -498,14 +505,18 @@ export default function PlayerView() {
             id="quick-bookmark-btn"
             title="שמור סימנייה"
           >
-            <span
+            <motion.span
+              key={isCurrentlyBookmarked ? 'marked' : 'unmarked'}
+              initial={reduced ? false : { scale: 0.4 }}
+              animate={{ scale: 1 }}
+              transition={tx(reduced, springSnappy)}
               className={`material-symbols-outlined text-[18px] ${isCurrentlyBookmarked ? 'text-[#ffb86b]' : 'text-[#9d9ca4]'
                 }`}
               id="quick-bm-icon"
               style={isCurrentlyBookmarked ? { fontVariationSettings: "'FILL' 1" } : undefined}
             >
               {isCurrentlyBookmarked ? 'bookmark' : 'bookmark_border'}
-            </span>
+            </motion.span>
             <span className="text-[13px] font-medium">
               {isCurrentlyBookmarked ? 'שמור' : 'סימנייה'}
             </span>

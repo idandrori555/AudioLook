@@ -77,11 +77,34 @@ export default function LibraryView() {
       ? `${(totalOfflineStorageMB / 1024).toFixed(1)}GB`
       : `${totalOfflineStorageMB}MB`;
 
+  // Book-level hero stats. For playlists, the live player position/duration
+  // only cover the CURRENT video — so elapsed/total are accumulated across
+  // all chapters instead (completed chapters count in full).
+  const heroStats = (() => {
+    if (!currentBook) return { elapsed: 0, total: 0 };
+    const chs = currentBook.chapters || [];
+    if (currentBook.isPlaylist && chs.length > 0) {
+      const dur = (i: number) => Math.max(0, chs[i]?.duration || 0);
+      const total = chs.reduce((s, _, i) => s + dur(i), 0);
+      if (total > 0) {
+        const idx = Math.min(Math.max(0, currentBook.currentChapterIndex || 0), chs.length - 1);
+        const before = chs.slice(0, idx).reduce((s, _, i) => s + dur(i), 0);
+        const chapterDur = dur(idx);
+        const posInChapter =
+          chapterDur > 0
+            ? Math.min(Math.max(0, currentTime), chapterDur)
+            : Math.max(0, currentTime);
+        return { elapsed: Math.min(total, before + posInChapter), total };
+      }
+    }
+    return { elapsed: currentTime, total: duration };
+  })();
+
   const currentBookProgressPercent =
-    currentBook && duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+    heroStats.total > 0 ? Math.min(100, Math.max(0, (heroStats.elapsed / heroStats.total) * 100)) : 0;
 
   const heroHoursRemaining = currentBook
-    ? Math.max(0, Math.round(((duration - currentTime) / 3600) * 10) / 10)
+    ? Math.max(0, Math.round(((heroStats.total - heroStats.elapsed) / 3600) * 10) / 10)
     : 0;
 
   return (
@@ -239,8 +262,8 @@ export default function LibraryView() {
                 />
               </div>
               <div className="flex justify-between items-center text-[11px] text-white/40 font-mono">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatRemainingTime(currentTime, duration)}</span>
+                <span>{formatTime(heroStats.elapsed)}</span>
+                <span>{formatRemainingTime(heroStats.elapsed, heroStats.total)}</span>
               </div>
             </div>
 
@@ -315,10 +338,6 @@ export default function LibraryView() {
           <div className="flex flex-col gap-2.5">
             {filteredBooks.map((book) => {
               const isSelected = currentBook?.id === book.id;
-              const progress =
-                book.totalDurationSeconds > 0
-                  ? Math.min(100, Math.round((book.currentTimeSeconds / book.totalDurationSeconds) * 100))
-                  : 0;
 
               const isDone = book.category === 'completed';
 
@@ -359,41 +378,6 @@ export default function LibraryView() {
                     <p className="text-[12px] text-[#9a9da6] truncate">
                       {book.author} • {book.source}
                     </p>
-
-                    {/* Progress / Status */}
-                    {isDone ? (
-                      <div className="flex items-center gap-2 text-[11px] text-white/45 mt-1">
-                        <span className="text-[#ffb86b]/90 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                          <span>הושלם</span>
-                        </span>
-                      </div>
-                    ) : book.currentTimeSeconds === 0 ? (
-                      <div className="flex items-center gap-2 text-[11px] text-white/45 mt-1">
-                        <span>משך: {formatTime(book.totalDurationSeconds).slice(0, 5)} ש׳</span>
-                        <span>•</span>
-                        <span className="text-[#ffb86b]/80">טרם הושמע</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2.5 text-[11px] text-white/45 mt-1">
-                        <div className="w-20 h-1 bg-white/[0.08] rounded-full overflow-hidden flex flex-row-reverse">
-                          <div
-                            className="bg-[#ffb86b]/80 h-full rounded-full"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <span>
-                          {progress}% • נותרו{' '}
-                          {Math.max(
-                            0.1,
-                            Math.round(
-                              ((book.totalDurationSeconds - book.currentTimeSeconds) / 3600) * 10
-                            ) / 10
-                          )}{' '}
-                          ש׳
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <button
@@ -402,10 +386,10 @@ export default function LibraryView() {
                       setPendingDeleteBookId(book.id);
                     }}
                     aria-label="מחק ספר"
-                    className="text-white/35 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                    className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-white/35 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                     title="מחק ספר מהספרייה"
                   >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span className="material-symbols-outlined text-[18px] leading-none">delete</span>
                   </button>
 
                   {/* Right Action Button */}
@@ -438,7 +422,7 @@ export default function LibraryView() {
                         }`}
                     >
                       <span
-                        className="material-symbols-outlined text-[20px]"
+                        className="material-symbols-outlined text-[20px] leading-none"
                         style={{ fontVariationSettings: "'FILL' 1" }}
                       >
                         {isSelected && isPlaying ? 'pause' : 'play_arrow'}

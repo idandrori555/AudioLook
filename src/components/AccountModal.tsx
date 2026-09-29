@@ -1,21 +1,36 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springFast, tx, useAppReducedMotion } from './motion';
 
 export default function AccountModal() {
   const { isAccountModalOpen, setIsAccountModalOpen, books } = useAudio();
+  const reduced = useAppReducedMotion();
 
-  if (!isAccountModalOpen) return null;
-
-  const totalHours = Math.round(
-    books.reduce((acc, b) => acc + (b.currentTimeSeconds / 3600), 0) * 10
-  ) / 10;
+  const totalMinutes = Math.round(books.reduce((acc, b) => acc + b.currentTimeSeconds / 60, 0));
   const completedCount = books.filter((b) => b.category === 'completed').length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-      <div
+    <AnimatePresence>
+      {isAccountModalOpen && (
+      <motion.div
+        key="account-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={tx(reduced, springFast)}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+        onClick={() => setIsAccountModalOpen(false)}
+      >
+      <motion.div
+        key="account-panel"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+        transition={tx(reduced, springFast)}
         className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="glass-glint" />
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
@@ -44,8 +59,8 @@ export default function AccountModal() {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
-            <span className="text-[20px] font-bold text-white block">{totalHours}</span>
-            <span className="text-[11px] text-[#9a9da6]">שעות האזנה</span>
+            <span className="text-[20px] font-bold text-white block">{totalMinutes}</span>
+            <span className="text-[11px] text-[#9a9da6]">דקות האזנה</span>
           </div>
           <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
             <span className="text-[20px] font-bold text-[#ffb86b] block">{completedCount}</span>
@@ -59,7 +74,9 @@ export default function AccountModal() {
         >
           סגור
         </button>
-      </div>
-    </div>
+      </motion.div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

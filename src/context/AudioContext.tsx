@@ -152,18 +152,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // YouTube player reference & state
   const [ytPlayer, setYtPlayer] = useState<any>(null);
   const [isYtReady, setIsYtReady] = useState(false);
+  // Default is cover-audio mode (האזנה). The _v2 key retires the old default
+  // (video) so every install picks up audio-first once, then remembers choice.
+  const VIDEO_MODE_KEY = 'audiolook_video_mode_v2';
   const [isVideoMode, setIsVideoModeState] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('audiolook_video_mode');
+      const saved = localStorage.getItem(VIDEO_MODE_KEY);
       if (saved !== null) return saved === 'true';
     } catch {}
-    return true;
+    return false;
   });
 
   const setIsVideoMode = (mode: boolean) => {
     setIsVideoModeState(mode);
     try {
-      localStorage.setItem('audiolook_video_mode', String(mode));
+      localStorage.setItem(VIDEO_MODE_KEY, String(mode));
     } catch {}
   };
 
@@ -171,7 +174,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setIsVideoModeState((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem('audiolook_video_mode', String(next));
+        localStorage.setItem(VIDEO_MODE_KEY, String(next));
       } catch {}
       return next;
     });
@@ -876,15 +879,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setBooks((prev) => [newBook, ...prev]);
     setCurrentBookId(newBook.id);
     setCurrentTime(0);
+    currentTimeRef.current = 0;
     setDuration(newBook.totalDurationSeconds);
+    // New books always start PAUSED — cue without autoplaying so the UI
+    // (and lock-screen) indicator correctly shows the paused state.
+    setIsPlaying(false);
     showToast(`"${newBook.title}" נוסף בהצלחה!`);
 
     if (newBook.youtubeId && ytPlayer && isYtReady) {
       try {
-        ytPlayer.loadVideoById(newBook.youtubeId, 0);
-        setIsPlaying(true);
+        ytPlayer.cueVideoById(newBook.youtubeId, 0);
       } catch (e) {
-        console.warn('YT load error:', e);
+        console.warn('YT cue error:', e);
       }
     }
   };
@@ -1012,7 +1018,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
         addBook(newBook);
         setActiveTab('player');
-        setIsVideoMode(true);
         showToast(`פלייליסט "${plData.title}" יובא עם ${plData.chapters.length} פרקים!`);
         return true;
       } catch (err) {
@@ -1055,7 +1060,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     addBook(newBook);
     setActiveTab('player');
-    setIsVideoMode(true);
     return true;
   };
 

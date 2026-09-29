@@ -1,5 +1,7 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springFast, tx, useAppReducedMotion } from './motion';
 
 export default function SleepTimerModal() {
   const {
@@ -9,8 +11,7 @@ export default function SleepTimerModal() {
     sleepTimerSecondsRemaining,
     setSleepTimer,
   } = useAudio();
-
-  if (!isSleepTimerModalOpen) return null;
+  const reduced = useAppReducedMotion();
 
   const presets = [
     { label: '15 דקות', minutes: 15 },
@@ -21,10 +22,26 @@ export default function SleepTimerModal() {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-      <div
+    <AnimatePresence>
+      {isSleepTimerModalOpen && (
+      <motion.div
+        key="sleep-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={tx(reduced, springFast)}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+        onClick={() => setIsSleepTimerModalOpen(false)}
+      >
+      <motion.div
+        key="sleep-panel"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+        transition={tx(reduced, springFast)}
         className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="glass-glint" />
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
@@ -82,7 +99,9 @@ export default function SleepTimerModal() {
             ביטול וכיבוי הטיימר
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

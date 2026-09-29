@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springFast, tx, useAppReducedMotion } from './motion';
 
 export default function SearchModal() {
   const { isSearchModalOpen, setIsSearchModalOpen, books, selectBook } = useAudio();
   const [query, setQuery] = useState('');
-
-  if (!isSearchModalOpen) return null;
+  const reduced = useAppReducedMotion();
 
   const results = query.trim()
     ? books.filter(
@@ -17,10 +18,26 @@ export default function SearchModal() {
     : books.slice(0, 4);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/75 backdrop-blur-md">
-      <div
+    <AnimatePresence>
+      {isSearchModalOpen && (
+      <motion.div
+        key="search-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={tx(reduced, springFast)}
+        className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/75 backdrop-blur-md"
+        onClick={() => setIsSearchModalOpen(false)}
+      >
+      <motion.div
+        key="search-panel"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, y: -16, scale: 0.98 }}
+        transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md rounded-2xl flex flex-col max-h-[80vh] overflow-hidden"
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="glass-glint" />
         {/* Search input header */}
@@ -92,7 +109,9 @@ export default function SearchModal() {
             </>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

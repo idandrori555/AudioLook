@@ -31,14 +31,16 @@ export default function MiniPlayer() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: reduced ? 0 : 72 }}
       transition={tx(reduced, springFast)}
-      className="fixed mini-player-dock inset-x-0 z-40 px-3 pb-1 pointer-events-auto max-w-xl mx-auto"
+      className="fixed mini-player-dock inset-x-0 z-40 px-4 pb-1 pointer-events-none"
     >
+      <div className="pointer-events-auto w-full max-w-sm mx-auto">
       <motion.div
         onClick={() => setActiveTab('player')}
         whileTap={reduced ? undefined : pressTap}
-        className="glass relative overflow-hidden rounded-2xl p-2.5 px-3 flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.2] transition-colors group"
+        className="glass relative overflow-hidden rounded-[26px] p-2.5 px-3 flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.2] transition-colors group"
       >
         <div className="glass-glint" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.07] to-transparent" />
         {/* Subtle top/bottom progress indicator line (no transition — updates every 500ms) */}
         <div className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06] pointer-events-none">
           <div
@@ -102,6 +104,7 @@ export default function MiniPlayer() {
           </motion.button>
         </div>
       </motion.div>
+      </div>
     </motion.aside>
       )}
     </AnimatePresence>

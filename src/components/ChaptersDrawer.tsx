@@ -1,5 +1,7 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springFast, tx, useAppReducedMotion } from './motion';
 
 export default function ChaptersDrawer() {
   const {
@@ -9,14 +11,32 @@ export default function ChaptersDrawer() {
     selectChapter,
     isPlaying,
   } = useAudio();
+  const reduced = useAppReducedMotion();
 
-  if (!isChaptersDrawerOpen || !currentBook) return null;
+  const open = isChaptersDrawerOpen && Boolean(currentBook);
+  // Panel docks to the RTL inline-end side (visually left) — slide from there.
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm transition-opacity">
-      <div
+    <AnimatePresence>
+      {open && currentBook && (
+      <motion.div
+        key="chapters-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={tx(reduced, springFast)}
+        className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm"
+        onClick={() => setIsChaptersDrawerOpen(false)}
+      >
+      <motion.div
+        key="chapters-panel"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, x: -88 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, x: -64 }}
+        transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md h-full flex flex-col !rounded-none !border-y-0 !border-l-0"
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
         <div className="h-16 px-5 border-b border-white/[0.08] flex items-center justify-between">
@@ -108,7 +128,9 @@ export default function ChaptersDrawer() {
             })
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
