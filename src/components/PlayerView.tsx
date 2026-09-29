@@ -99,7 +99,7 @@ export default function PlayerView() {
 
   if (!currentBook) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none pb-20 justify-center items-center p-6 text-center" dir="rtl">
+      <div className="min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav justify-center items-center p-6 text-center" dir="rtl">
         <div className="w-16 h-16 rounded-full bg-white/[0.04] text-[#ffb86b] flex items-center justify-center mb-4">
           <span className="material-symbols-outlined text-[32px]">headphones</span>
         </div>
@@ -121,7 +121,7 @@ export default function PlayerView() {
   const isYouTubeBook = Boolean(currentBook.youtubeId);
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none pb-20">
+    <div className="relative min-h-[calc(100vh-64px)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav">
       {/* Header */}
       <header className="sticky top-0 inset-x-0 z-40 bg-[#121316]/90 backdrop-blur-md pt-safe border-b border-white/[0.05]">
         <div className="h-14 px-5 flex items-center justify-between max-w-md mx-auto">

@@ -10,6 +10,8 @@
     --color-primary: #ffb86b;
     --color-primary-container: #e89838;
     --color-on-primary: #492900;
+    --sab: env(safe-area-inset-bottom, 0px);
+    --bottom-nav-h: 4rem;
   }
 
   html, body {
@@ -28,10 +30,24 @@
   }
 
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
   }
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Fixed bars must clear the OS gesture/home area.
+     BottomNav height = h-16 + safe-area, so MiniPlayer sits above both. */
+  .mini-player-dock {
+    bottom: calc(var(--bottom-nav-h, 4rem) + var(--sab, env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Scroll content must clear MiniPlayer + BottomNav + safe-area. */
+  .page-with-dock {
+    padding-bottom: calc(9rem + var(--sab, env(safe-area-inset-bottom, 0px)));
+  }
+  .page-with-nav {
+    padding-bottom: calc(5rem + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
 }
 

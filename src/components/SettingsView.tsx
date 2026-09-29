@@ -19,7 +19,7 @@ export default function SettingsView() {
   };
 
   return (
-    <main className="flex-1 w-full pb-36 px-5 max-w-xl mx-auto flex flex-col gap-6 pt-5" dir="rtl">
+    <main className="flex-1 w-full page-with-dock px-5 max-w-xl mx-auto flex flex-col gap-6 pt-5" dir="rtl">
       <div className="flex flex-col gap-1">
         <h1 className="text-[28px] font-semibold tracking-tight text-white">הגדרות האפליקציה</h1>
         <p className="text-[13px] text-[#9a9da6]">התאמה אישית של חוויית ההאזנה והאחסון</p>

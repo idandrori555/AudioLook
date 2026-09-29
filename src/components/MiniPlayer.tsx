@@ -20,7 +20,7 @@ export default function MiniPlayer() {
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
   return (
-    <aside className="fixed bottom-16 inset-x-0 z-40 px-3 pb-1 pointer-events-auto max-w-xl mx-auto">
+    <aside className="fixed mini-player-dock inset-x-0 z-40 px-3 pb-1 pointer-events-auto max-w-xl mx-auto">
       <div
         onClick={() => setActiveTab('player')}
         className="relative overflow-hidden bg-[#24252a]/95 backdrop-blur-2xl rounded-2xl p-2.5 px-3 border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.14] transition-all group"

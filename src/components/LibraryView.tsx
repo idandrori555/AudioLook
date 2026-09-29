@@ -79,7 +79,7 @@ export default function LibraryView() {
     : 0;
 
   return (
-    <main className="flex-1 w-full pb-36 px-5 max-w-xl mx-auto flex flex-col gap-6 pt-5">
+    <main className="flex-1 w-full page-with-dock px-5 max-w-xl mx-auto flex flex-col gap-6 pt-5">
       {/* Title & Real Statistics Summary */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
