@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
@@ -38,6 +38,36 @@ export default function PlayerView() {
   const scrubberRef = useRef<HTMLDivElement | null>(null);
   const [dragSeekTime, setDragSeekTime] = useState<number | null>(null);
   const reduced = useAppReducedMotion();
+
+  // Chapter-toss direction: +1 = moved forward (next), -1 = moved back.
+  // Derived from the live index so every source (buttons, drawer, earphones,
+  // auto-advance) tosses the right way. Time flows left-to-right here (LTR
+  // scrubber), so "next" throws the old card off to the left like a page turn.
+  const chapterIdx = currentBook?.currentChapterIndex ?? 0;
+  const bookId = currentBook?.id ?? null;
+  const prevPosRef = useRef<{ bookId: string | null; idx: number }>({ bookId, idx: chapterIdx });
+  const [tossDir, setTossDir] = useState<1 | -1>(1);
+  useEffect(() => {
+    const prev = prevPosRef.current;
+    if (prev.bookId === bookId && prev.idx !== chapterIdx) {
+      setTossDir(chapterIdx > prev.idx ? 1 : -1);
+    }
+    prevPosRef.current = { bookId, idx: chapterIdx };
+  }, [bookId, chapterIdx]);
+  const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
+
+  // Tinder-style card toss variants (custom = tossDir).
+  const tossVariants = {
+    enter: (dir: number) =>
+      reduced
+        ? { opacity: 0 }
+        : { opacity: 0, x: dir * 220, rotate: dir * 7, scale: 0.92 },
+    center: { opacity: 1, x: 0, rotate: 0, scale: 1 },
+    exit: (dir: number) =>
+      reduced
+        ? { opacity: 0 }
+        : { opacity: 0, x: -dir * 300, rotate: -dir * 13, scale: 0.94 },
+  };
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -220,11 +250,21 @@ export default function PlayerView() {
               whileTap={reduced ? undefined : { scale: 0.98 }}
               className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c]"
             >
-              <img
-                className="w-full h-full object-cover"
-                alt={currentBook.title}
-                src={currentBook.coverUrl}
-              />
+              <AnimatePresence initial={false} custom={tossDir}>
+                <motion.img
+                  key={chapterKey}
+                  custom={tossDir}
+                  variants={tossVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={tx(reduced, springSnappy)}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  alt={currentBook.title}
+                  src={currentBook.coverUrl}
+                  draggable={false}
+                />
+              </AnimatePresence>
             </motion.div>
           )}
         </div>
@@ -238,11 +278,21 @@ export default function PlayerView() {
           {currentChapter && (
             <button
               onClick={() => setIsChaptersDrawerOpen(true)}
-              className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-[13px] text-[#ffb86b]/95 font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-[13px] text-[#ffb86b]/95 font-medium transition-colors cursor-pointer overflow-hidden"
             >
-              <span className="truncate max-w-[280px]">
-                פרק {currentChapter.number}: {currentChapter.title}
-              </span>
+              <AnimatePresence initial={false} mode="wait" custom={tossDir}>
+                <motion.span
+                  key={chapterKey}
+                  custom={tossDir}
+                  initial={reduced ? { opacity: 0 } : { opacity: 0, x: tossDir * 48 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={reduced ? { opacity: 0 } : { opacity: 0, x: -tossDir * 48 }}
+                  transition={tx(reduced, springSnappy)}
+                  className="truncate max-w-[280px]"
+                >
+                  פרק {currentChapter.number}: {currentChapter.title}
+                </motion.span>
+              </AnimatePresence>
               <span className="material-symbols-outlined text-[14px]">expand_more</span>
             </button>
           )}

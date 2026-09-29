@@ -9,7 +9,9 @@ export default function Toast() {
 
   return (
     <div className="fixed top-18 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
-      <AnimatePresence>
+      {/* popLayout: the exiting toast leaves document flow instantly so the
+          incoming one never sits beside it / jumps to center mid-spam */}
+      <AnimatePresence mode="popLayout">
         {toastMessage && (
           <motion.div
             key={toastMessage}
