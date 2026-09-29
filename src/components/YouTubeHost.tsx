@@ -16,12 +16,18 @@ export default function YouTubeHost() {
     activeTab,
     isVideoMode,
     nextChapter,
+    markBookCompleted,
   } = useAudio();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerInstanceRef = useRef<any>(null);
   const nextChapterRef = useRef(nextChapter);
-  const isPlaylistRef = useRef<boolean>(false);
+  const markCompletedRef = useRef(markBookCompleted);
+  const endStateRef = useRef<{ bookId: string | null; isPlaylist: boolean; isLastChapter: boolean }>({
+    bookId: null,
+    isPlaylist: false,
+    isLastChapter: true,
+  });
   const [slotRect, setSlotRect] = useState<DOMRect | null>(null);
 
   // Keep event-handler refs fresh without re-subscribing the YT player
@@ -33,8 +39,17 @@ export default function YouTubeHost() {
     nextChapterRef.current = nextChapter;
   }, [nextChapter]);
   useEffect(() => {
-    isPlaylistRef.current = Boolean(currentBook?.isPlaylist);
-  }, [currentBook?.isPlaylist]);
+    markCompletedRef.current = markBookCompleted;
+  }, [markBookCompleted]);
+  useEffect(() => {
+    const chCount = currentBook?.chapters?.length ?? 0;
+    const idx = currentBook?.currentChapterIndex ?? 0;
+    endStateRef.current = {
+      bookId: currentBook?.id ?? null,
+      isPlaylist: Boolean(currentBook?.isPlaylist),
+      isLastChapter: !currentBook?.isPlaylist || chCount === 0 || idx >= chCount - 1,
+    };
+  }, [currentBook?.id, currentBook?.isPlaylist, currentBook?.chapters?.length, currentBook?.currentChapterIndex]);
 
   // Load YouTube IFrame API if not already present
   useEffect(() => {
@@ -129,9 +144,13 @@ export default function YouTubeHost() {
             onStateChange: (event: any) => {
               // 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING
               // Use refs so the handler never goes stale across book changes.
+              // Fires once per finish: advance mid-playlist, complete at the end.
               if (event.data === 0) {
-                if (isPlaylistRef.current) {
+                const end = endStateRef.current;
+                if (end.isPlaylist && !end.isLastChapter) {
                   nextChapterRef.current();
+                } else if (end.bookId) {
+                  markCompletedRef.current(end.bookId);
                 }
               }
             },

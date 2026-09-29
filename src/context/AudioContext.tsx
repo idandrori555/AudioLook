@@ -50,6 +50,7 @@ interface AudioContextType {
   selectBook: (bookId: string, autoPlay?: boolean, navigateToPlayer?: boolean) => void;
   addBook: (book: Book) => void;
   deleteBook: (bookId: string) => void;
+  markBookCompleted: (bookId: string) => void;
   setPlaybackSpeed: (speed: number) => void;
   setSleepTimer: (minutes: number | null) => void;
   toggleBookmark: () => void;
@@ -225,6 +226,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const isPlayingRef = useRef<boolean>(false);
   const chapterYtTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingChapterYtRef = useRef<{ youtubeId: string; resumeTime: number } | null>(null);
+  // Consecutive "paused" reads from the YT player (debounces transient states
+  // during our own play/seek commands so external pauses need 2 ticks to sync).
+  const ytPausedStreakRef = useRef<number>(0);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -420,6 +424,50 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentBook?.id, ytPlayer, isYtReady]);
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    // Clear any pending dismiss so rapid toasts each get a full 2.8s window
+    // and an old timer can never clear a newer message early.
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage((cur) => (cur === message ? null : cur));
+      toastTimerRef.current = null;
+    }, 2800);
+  }, []);
+
+  // Cleanup toast dismiss timer on unmount (avoids setState after unmount)
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const markBookCompleted = useCallback((bookId: string) => {
+    setBooks((prev) => {
+      const target = prev.find((b) => b.id === bookId);
+      if (!target || target.category === 'completed') return prev;
+      const updated = prev.map((b) =>
+        b.id === bookId
+          ? { ...b, category: 'completed' as const, lastListenedAt: new Date().toISOString() }
+          : b,
+      );
+      try {
+        localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save completion:', e);
+      }
+      return updated;
+    });
+    setIsPlaying(false);
+    saveProgressNow();
+    if (currentBookIdRef.current === bookId) {
+      const doneBook = books.find((b) => b.id === bookId);
+      showToast(doneBook ? `סיימת את "${doneBook.title}"!` : 'סיימת את הספר!');
+    }
+  }, [books, saveProgressNow, showToast]);
+
   // Push current position to the OS (lock-screen scrubber, earphones, car BT).
   // Browsers throw on invalid values (no metadata yet, duration 0) — safe to ignore.
   const syncMediaPositionState = useCallback(() => {
@@ -443,6 +491,28 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (currentBook?.youtubeId && ytPlayer && isYtReady) {
       interval = setInterval(() => {
         try {
+          // Two-way state sync: the player can pause/stop outside our UI
+          // (earphone tap routed to the iframe, YT native controls, phone call).
+          // Mirror definitive states into the app so icons/lock-screen stay true.
+          // YT states: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
+          if (typeof ytPlayer.getPlayerState === 'function') {
+            const st = ytPlayer.getPlayerState();
+            if (st === 1) {
+              ytPausedStreakRef.current = 0;
+              if (!isPlayingRef.current) setIsPlaying(true);
+            } else if (st === 2) {
+              ytPausedStreakRef.current += 1;
+              if (ytPausedStreakRef.current >= 2 && isPlayingRef.current) {
+                setIsPlaying(false);
+                saveProgressNow();
+              }
+            } else {
+              ytPausedStreakRef.current = 0;
+              // NOTE: ENDED(0) is owned by YouTubeHost.onStateChange (fires once
+              // per finish and advances or completes) — the poller stays out so
+              // completion toasts can't repeat while state 0 persists.
+            }
+          }
           if (typeof ytPlayer.getCurrentTime === 'function') {
             const ytTime = ytPlayer.getCurrentTime();
             if (typeof ytTime === 'number' && !isNaN(ytTime) && ytTime >= 0) {
@@ -506,8 +576,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (next >= duration) {
+            const finishedId = currentBookIdRef.current;
             setIsPlaying(false);
             saveProgressNow(duration);
+            if (finishedId) markBookCompleted(finishedId);
             return duration;
           }
           return next;
@@ -531,27 +603,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow, syncMediaPositionState]);
-
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showToast = useCallback((message: string) => {
-    setToastMessage(message);
-    // Clear any pending dismiss so rapid toasts each get a full 2.8s window
-    // and an old timer can never clear a newer message early.
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => {
-      setToastMessage((cur) => (cur === message ? null : cur));
-      toastTimerRef.current = null;
-    }, 2800);
-  }, []);
-
-  // Cleanup toast dismiss timer on unmount (avoids setState after unmount)
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
+  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow, syncMediaPositionState, markBookCompleted]);
 
   const flushPendingSeek = useCallback(() => {
     const target = pendingSeekTargetRef.current;
@@ -833,8 +885,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // 1. Save progress in the outgoing book
     saveProgressNow();
 
-    const target = books.find((b) => b.id === bookId);
-    if (!target) return;
+    const rawTarget = books.find((b) => b.id === bookId);
+    if (!rawTarget) return;
+
+    // Replaying a completed book starts it over as a fresh listen.
+    let target = rawTarget;
+    if (rawTarget.category === 'completed') {
+      target = {
+        ...rawTarget,
+        category: 'listening' as const,
+        currentChapterIndex: 0,
+        currentTimeSeconds: 0,
+        chapterProgress: {},
+      };
+      setBooks((prev) => prev.map((b) => (b.id === bookId ? target : b)));
+    }
 
     const resumeChapterIndex = target.currentChapterIndex || 0;
     const resumeTime =
@@ -1115,6 +1180,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         selectBook,
         addBook,
         deleteBook,
+        markBookCompleted,
         setPlaybackSpeed,
         setSleepTimer,
         toggleBookmark,
