@@ -28,8 +28,12 @@ export default function LibraryView() {
   const [importUrl, setImportUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success'>('idle');
-  const [activeMenuBookId, setActiveMenuBookId] = useState<string | null>(null);
+  const [pendingDeleteBookId, setPendingDeleteBookId] = useState<string | null>(null);
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+
+  const pendingDeleteBook = pendingDeleteBookId
+    ? books.find((b) => b.id === pendingDeleteBookId) ?? null
+    : null;
 
   const handleImport = async () => {
     if (!importUrl.trim()) return;
@@ -275,51 +279,14 @@ export default function LibraryView() {
               >
                 <span className="material-symbols-outlined text-[19px]">bookmark_add</span>
               </button>
-              <div className="relative">
-                <button
-                  onClick={() =>
-                    setActiveMenuBookId(activeMenuBookId === 'hero' ? null : 'hero')
-                  }
-                  aria-label="אפשרויות"
-                  className="w-11 h-11 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-white/75 hover:text-white flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[19px]">more_horiz</span>
-                </button>
-                {activeMenuBookId === 'hero' && (
-                  <div className="absolute bottom-13 left-0 bg-[#24252a] border border-white/[0.1] rounded-xl p-1.5 shadow-2xl z-30 min-w-[160px] text-[13px] flex flex-col gap-1">
-                    <button
-                      onClick={() => {
-                        setActiveTab('player');
-                        setActiveMenuBookId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-white hover:bg-white/10 text-right cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[17px]">headphones</span>
-                      <span>פתח נגן מלא</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        toggleBookmark();
-                        setActiveMenuBookId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-white hover:bg-white/10 text-right cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[17px]">bookmark</span>
-                      <span>הוסף סימנייה</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        deleteBook(currentBook.id);
-                        setActiveMenuBookId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 text-right cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[17px]">delete</span>
-                      <span>מחק ספר מהספרייה</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => currentBook && setPendingDeleteBookId(currentBook.id)}
+                aria-label="מחק ספר"
+                className="w-11 h-11 rounded-xl bg-white/[0.05] hover:bg-red-500/10 text-white/75 hover:text-red-400 flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
+                title="מחק ספר מהספרייה"
+              >
+                <span className="material-symbols-outlined text-[19px]">delete</span>
+              </button>
             </div>
           </div>
         </section>
@@ -436,46 +403,17 @@ export default function LibraryView() {
                     )}
                   </div>
 
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuBookId(activeMenuBookId === book.id ? null : book.id);
-                      }}
-                      aria-label="אפשרויות"
-                      className="text-white/35 hover:text-white transition-colors p-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">more_vert</span>
-                    </button>
-
-                    {activeMenuBookId === book.id && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute left-0 top-7 bg-[#24252a] border border-white/[0.1] rounded-xl p-1.5 shadow-2xl z-30 min-w-[150px] text-[13px] flex flex-col gap-1"
-                      >
-                        <button
-                          onClick={() => {
-                            selectBook(book.id, true, true);
-                            setActiveMenuBookId(null);
-                          }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 text-right cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-                          <span>נגן במסך מלא</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            deleteBook(book.id);
-                            setActiveMenuBookId(null);
-                          }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 text-right cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                          <span>מחק ספר</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDeleteBookId(book.id);
+                    }}
+                    aria-label="מחק ספר"
+                    className="text-white/35 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                    title="מחק ספר מהספרייה"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
 
                   {/* Right Action Button */}
                   {isDone ? (
@@ -544,6 +482,48 @@ export default function LibraryView() {
 
       {/* Modal to add custom book */}
       <AddBookModal isOpen={isAddBookModalOpen} onClose={() => setIsAddBookModalOpen(false)} />
+
+      {/* Delete confirmation */}
+      {pendingDeleteBookId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          onClick={() => setPendingDeleteBookId(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#1e1f24] rounded-2xl border border-white/[0.08] p-5 shadow-2xl flex flex-col gap-4 text-right"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-red-400 text-[22px]">delete</span>
+              <h3 className="text-[17px] font-semibold text-white">למחוק את הספר?</h3>
+            </div>
+            <p className="text-[13px] text-white/60 leading-relaxed">
+              {pendingDeleteBook
+                ? `״${pendingDeleteBook.title}״ יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.`
+                : 'הספר יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.'}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPendingDeleteBookId(null)}
+                className="flex-1 h-11 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-[14px] font-medium transition-colors cursor-pointer"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={() => {
+                  if (pendingDeleteBookId) deleteBook(pendingDeleteBookId);
+                  setPendingDeleteBookId(null);
+                }}
+                className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-400 text-white text-[14px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[18px]">delete</span>
+                <span>מחק</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
