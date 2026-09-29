@@ -15,14 +15,26 @@ export default function YouTubeHost() {
     setIsYtReady,
     activeTab,
     isVideoMode,
-    playPause,
-    isPlaying,
     nextChapter,
   } = useAudio();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerInstanceRef = useRef<any>(null);
+  const nextChapterRef = useRef(nextChapter);
+  const isPlaylistRef = useRef<boolean>(false);
   const [slotRect, setSlotRect] = useState<DOMRect | null>(null);
+
+  // Keep event-handler refs fresh without re-subscribing the YT player
+  const currentBookRef = useRef(currentBook);
+  useEffect(() => {
+    currentBookRef.current = currentBook;
+  }, [currentBook]);
+  useEffect(() => {
+    nextChapterRef.current = nextChapter;
+  }, [nextChapter]);
+  useEffect(() => {
+    isPlaylistRef.current = Boolean(currentBook?.isPlaylist);
+  }, [currentBook?.isPlaylist]);
 
   // Load YouTube IFrame API if not already present
   useEffect(() => {
@@ -44,15 +56,29 @@ export default function YouTubeHost() {
     const updatePosition = () => {
       const slot = document.getElementById('yt-player-target-slot');
       if (slot) {
-        setSlotRect(slot.getBoundingClientRect());
+        const rect = slot.getBoundingClientRect();
+        // Only trigger a re-render when the slot actually moved/resized (>1px)
+        // so scroll/resize spam doesn't jitter the fixed overlay.
+        setSlotRect((prev) => {
+          if (
+            prev &&
+            Math.abs(prev.top - rect.top) < 1 &&
+            Math.abs(prev.left - rect.left) < 1 &&
+            Math.abs(prev.width - rect.width) < 1 &&
+            Math.abs(prev.height - rect.height) < 1
+          ) {
+            return prev;
+          }
+          return rect;
+        });
       }
     };
 
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition);
+    window.addEventListener('scroll', updatePosition, { passive: true });
 
-    const interval = setInterval(updatePosition, 300);
+    const interval = setInterval(updatePosition, 500);
 
     return () => {
       window.removeEventListener('resize', updatePosition);
@@ -72,7 +98,7 @@ export default function YouTubeHost() {
         const player = new window.YT.Player('audiolook-yt-iframe-root', {
           height: '100%',
           width: '100%',
-          videoId: currentBook?.youtubeId || '',
+          videoId: currentBookRef.current?.youtubeId || '',
           playerVars: {
             autoplay: 1,
             controls: 1,
@@ -88,20 +114,24 @@ export default function YouTubeHost() {
               playerInstanceRef.current = event.target;
               setYtPlayer(event.target);
               setIsYtReady(true);
-              if (currentBook?.youtubeId) {
-                const chIdx = currentBook.currentChapterIndex || 0;
+              const latestBook = currentBookRef.current;
+              if (latestBook?.youtubeId) {
+                const chIdx = latestBook.currentChapterIndex || 0;
                 const resumeTime =
-                  currentBook.chapterProgress?.[chIdx] ??
-                  currentBook.currentTimeSeconds ??
+                  latestBook.chapterProgress?.[chIdx] ??
+                  latestBook.currentTimeSeconds ??
                   0;
-                event.target.cueVideoById(currentBook.youtubeId, resumeTime);
+                try {
+                  event.target.cueVideoById(latestBook.youtubeId, resumeTime);
+                } catch { }
               }
             },
             onStateChange: (event: any) => {
               // 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING
+              // Use refs so the handler never goes stale across book changes.
               if (event.data === 0) {
-                if (currentBook?.isPlaylist) {
-                  nextChapter();
+                if (isPlaylistRef.current) {
+                  nextChapterRef.current();
                 }
               }
             },
@@ -130,7 +160,10 @@ export default function YouTubeHost() {
     return () => {
       if (checkInterval) clearInterval(checkInterval);
     };
-  }, [currentBook?.youtubeId, setYtPlayer, setIsYtReady, isPlaying]);
+    // NOTE: intentionally omit isPlaying/nextChapter/currentBook — the player is a
+    // singleton; re-running init on playback toggles caused re-init checks + glitches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setYtPlayer, setIsYtReady]);
 
   const shouldDisplayInSlot =
     activeTab === 'player' && isVideoMode && Boolean(currentBook?.youtubeId) && slotRect;

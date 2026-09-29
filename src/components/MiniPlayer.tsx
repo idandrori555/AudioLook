@@ -25,10 +25,10 @@ export default function MiniPlayer() {
         onClick={() => setActiveTab('player')}
         className="relative overflow-hidden bg-[#24252a]/95 backdrop-blur-2xl rounded-2xl p-2.5 px-3 border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-3 cursor-pointer hover:border-white/[0.14] transition-all group"
       >
-        {/* Subtle top/bottom progress indicator line */}
-        <div className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06]">
+        {/* Subtle top/bottom progress indicator line (no transition — updates every 500ms) */}
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06] pointer-events-none">
           <div
-            className="h-full bg-[#ffb86b] transition-all duration-300"
+            className="h-full bg-[#ffb86b]"
             style={{ width: `${progressPercent}%` }}
           />
         </div>

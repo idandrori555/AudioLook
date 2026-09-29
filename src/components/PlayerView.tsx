@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAudio } from '../context/AudioContext';
 
 export default function PlayerView() {
@@ -32,10 +32,19 @@ export default function PlayerView() {
   const [bounceReplay, setBounceReplay] = useState(false);
   const [bounceForward, setBounceForward] = useState(false);
   const scrubberRef = useRef<HTMLDivElement | null>(null);
+  const bounceReplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bounceForwardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dragSeekTime, setDragSeekTime] = useState<number | null>(null);
+
+  // Cleanup bounce timers on unmount to avoid setState after unmount
+  useEffect(() => {
+    return () => {
+      if (bounceReplayTimeoutRef.current) clearTimeout(bounceReplayTimeoutRef.current);
+      if (bounceForwardTimeoutRef.current) clearTimeout(bounceForwardTimeoutRef.current);
+    };
+  }, []);
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
-
-  const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
   // Check if current timestamp is bookmarked
   const isCurrentlyBookmarked = currentBook
@@ -57,14 +66,22 @@ export default function PlayerView() {
   const handleScrubberPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!currentBook) return;
     setIsDraggingScrubber(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const targetSeconds = calculateSeekTime(e.clientX);
-    seekTo(targetSeconds);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch { }
+    // Preview only — commit a single seek on pointer-up to avoid YT seek floods
+    setDragSeekTime(calculateSeekTime(e.clientX));
   };
 
   const handleScrubberPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDraggingScrubber || !currentBook) return;
-    const targetSeconds = calculateSeekTime(e.clientX);
+    // Local preview, no seekTo here (spam-proof)
+    setDragSeekTime(calculateSeekTime(e.clientX));
+  };
+
+  const commitScrubber = (clientX: number) => {
+    const targetSeconds = calculateSeekTime(clientX);
+    setDragSeekTime(null);
     seekTo(targetSeconds);
   };
 
@@ -74,22 +91,40 @@ export default function PlayerView() {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch { }
-      const targetSeconds = calculateSeekTime(e.clientX);
-      seekTo(targetSeconds);
+      commitScrubber(e.clientX);
     }
   };
 
+  const handleScrubberPointerCancel = () => {
+    setIsDraggingScrubber(false);
+    setDragSeekTime(null);
+  };
+
+  const triggerBounce = (
+    setBounce: (v: boolean) => void,
+    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
+  ) => {
+    setBounce(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setBounce(false);
+      timerRef.current = null;
+    }, 150);
+  };
+
   const handleReplay10 = () => {
-    setBounceReplay(true);
+    triggerBounce(setBounceReplay, bounceReplayTimeoutRef);
     jumpRelative(-10);
-    setTimeout(() => setBounceReplay(false), 150);
   };
 
   const handleForward10 = () => {
-    setBounceForward(true);
+    triggerBounce(setBounceForward, bounceForwardTimeoutRef);
     jumpRelative(10);
-    setTimeout(() => setBounceForward(false), 150);
   };
+
+  // While dragging, show the preview position instead of the live playback position
+  const displayTime = isDraggingScrubber && dragSeekTime !== null ? dragSeekTime : currentTime;
+  const displayPercent = duration > 0 ? Math.min(100, Math.max(0, (displayTime / duration) * 100)) : 0;
 
   // Up-next chapter
   const nextChapterObj =
@@ -232,6 +267,7 @@ export default function PlayerView() {
             onPointerDown={handleScrubberPointerDown}
             onPointerMove={handleScrubberPointerMove}
             onPointerUp={handleScrubberPointerUp}
+            onPointerCancel={handleScrubberPointerCancel}
             className="relative w-full py-3 cursor-pointer group touch-none select-none"
             id="scrubber-container"
           >
@@ -239,9 +275,9 @@ export default function PlayerView() {
             <div className="w-full h-[5px] rounded-full bg-white/10 overflow-hidden relative">
               {/* Active Progress Bar (LTR left-to-right) */}
               <div
-                className="h-full bg-[#e89838] rounded-full transition-all duration-75"
+                className="h-full bg-[#e89838] rounded-full"
                 id="progress-fill"
-                style={{ width: `${progressPercent}%` }}
+                style={{ width: `${displayPercent}%` }}
               />
             </div>
             {/* Thumb */}
@@ -249,16 +285,16 @@ export default function PlayerView() {
               className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#ffb86b] shadow-md border-2 border-[#121316] pointer-events-none transition-transform ${isDraggingScrubber ? 'scale-125 ring-2 ring-[#ffb86b]/40' : 'group-hover:scale-125'
                 }`}
               id="scrubber-head"
-              style={{ left: `calc(${progressPercent}% - 8px)` }}
+              style={{ left: `calc(${displayPercent}% - 8px)` }}
             />
           </div>
 
           {/* Timestamps */}
           <div className="flex items-center justify-between text-[12px] font-mono text-[#9d9ca4] px-0.5 tracking-tight select-none">
             <span className="text-[#e3e2e6]/80" id="elapsed-time">
-              {formatTime(currentTime)}
+              {formatTime(displayTime)}
             </span>
-            <span id="remaining-time">{formatRemainingTime(currentTime, duration)}</span>
+            <span id="remaining-time">{formatRemainingTime(displayTime, duration)}</span>
           </div>
         </div>
 

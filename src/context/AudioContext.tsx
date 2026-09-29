@@ -210,7 +210,31 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const currentChapterIndexRef = useRef<number>(currentBook?.currentChapterIndex || 0);
   const lastSaveTimestampRef = useRef<number>(0);
 
+  // Spam-proofing refs (transport controls)
+  const seekPendingUntilRef = useRef<number>(0);
+  const pendingSeekTargetRef = useRef<number | null>(null);
+  const seekDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playToggleLockRef = useRef<number>(0);
+  const isPlayingRef = useRef<boolean>(false);
+  const chapterYtTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingChapterYtRef = useRef<{ youtubeId: string; resumeTime: number } | null>(null);
+
   useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Cleanup pending timers on unmount
+  useEffect(() => {
+    return () => {
+      if (seekDebounceTimerRef.current) clearTimeout(seekDebounceTimerRef.current);
+      if (chapterYtTimerRef.current) clearTimeout(chapterYtTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Don't clobber optimistic seek UI from the poller-driven sync below.
+    // currentTimeRef is the source of truth for seeks; only sync when idle.
+    if (Date.now() < seekPendingUntilRef.current) return;
     currentTimeRef.current = currentTime;
   }, [currentTime]);
 
@@ -399,14 +423,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           if (typeof ytPlayer.getCurrentTime === 'function') {
             const ytTime = ytPlayer.getCurrentTime();
             if (typeof ytTime === 'number' && !isNaN(ytTime) && ytTime >= 0) {
-              const sec = Math.floor(ytTime);
-              setCurrentTime(sec);
-              currentTimeRef.current = sec;
+              // Skip poller writes while an optimistic seek is in flight
+              // so rapid ±10s taps don't flicker back to the old position.
+              if (Date.now() >= seekPendingUntilRef.current) {
+                const sec = Math.floor(ytTime);
+                // Only push if drifted (>=1s) to avoid re-render churn
+                if (Math.abs(sec - currentTimeRef.current) >= 1) {
+                  setCurrentTime(sec);
+                  currentTimeRef.current = sec;
+                }
 
-              const now = Date.now();
-              if (now - lastSaveTimestampRef.current >= 1500) {
-                lastSaveTimestampRef.current = now;
-                saveProgressNow(sec);
+                const now = Date.now();
+                if (now - lastSaveTimestampRef.current >= 1500) {
+                  lastSaveTimestampRef.current = now;
+                  saveProgressNow(sec);
+                }
               }
             }
           }
@@ -483,22 +514,42 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }, 2800);
   };
 
+  const flushPendingSeek = useCallback(() => {
+    const target = pendingSeekTargetRef.current;
+    pendingSeekTargetRef.current = null;
+    seekDebounceTimerRef.current = null;
+    if (target === null || target === undefined) return;
+    // Keep poller from overwriting until YT catches up
+    seekPendingUntilRef.current = Date.now() + 600;
+    try {
+      if (ytPlayer && isYtReady && typeof ytPlayer.seekTo === 'function') {
+        ytPlayer.seekTo(target, true);
+      }
+    } catch (e) {
+      console.warn('YT seek error:', e);
+    }
+    saveProgressNow(Math.floor(target));
+  }, [ytPlayer, isYtReady, saveProgressNow]);
+
   const playPause = useCallback(() => {
     if (!currentBook) {
       showToast('אנא הוסף או בחר ספר שמע מהספרייה');
       return;
     }
 
+    // Ignore rapid toggles while YT state is settling (~400ms lock)
+    const now = Date.now();
+    if (now - playToggleLockRef.current < 400) return;
+    playToggleLockRef.current = now;
+
     if (currentBook.youtubeId && ytPlayer && isYtReady) {
       try {
-        const state = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1;
-        if (state === 1) {
-          // Playing -> Pause
+        // Prefer local intent over getPlayerState (which lags during buffering)
+        if (isPlayingRef.current) {
           ytPlayer.pauseVideo();
           setIsPlaying(false);
           saveProgressNow();
         } else {
-          // Paused/Cued -> Play
           ytPlayer.playVideo();
           setIsPlaying(true);
         }
@@ -517,49 +568,52 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     });
   }, [currentBook, ytPlayer, isYtReady, saveProgressNow]);
 
-  const seekTo = (seconds: number) => {
+  const seekTo = useCallback((seconds: number) => {
     if (!currentBook) return;
-    const clamped = Math.max(0, Math.min(seconds, duration));
-    setCurrentTime(clamped);
-    currentTimeRef.current = clamped;
-    saveProgressNow(clamped);
+    // duration may be stale (0 before YT reports); fall back to large upper bound
+    const upper = duration > 0 ? duration : 99 * 3600;
+    const clamped = Math.max(0, Math.min(seconds, upper));
+    const floored = Math.floor(clamped);
+    // Optimistic UI — always accumulate from the ref, never stale state
+    setCurrentTime(floored);
+    currentTimeRef.current = floored;
+    pendingSeekTargetRef.current = floored;
+    seekPendingUntilRef.current = Date.now() + 600;
 
-    if (currentBook.youtubeId && ytPlayer && isYtReady) {
-      try {
-        ytPlayer.seekTo(clamped, true);
-      } catch (e) {
-        console.warn('YT seek error:', e);
+    // Debounce the expensive YT seek + storage write (trailing edge 120ms)
+    if (seekDebounceTimerRef.current) clearTimeout(seekDebounceTimerRef.current);
+    seekDebounceTimerRef.current = setTimeout(() => {
+      flushPendingSeek();
+    }, 120);
+  }, [currentBook, duration, flushPendingSeek]);
+
+  const jumpRelative = useCallback((deltaSeconds: number) => {
+    if (!currentBook) return;
+    // Accumulate on top of any pending seek so spam never loses clicks:
+    // 5x +10s = +50s even before YT confirms.
+    const base = pendingSeekTargetRef.current ?? currentTimeRef.current;
+    seekTo(base + deltaSeconds);
+  }, [currentBook, seekTo]);
+
+  const flushPendingChapterYt = useCallback(() => {
+    const pending = pendingChapterYtRef.current;
+    pendingChapterYtRef.current = null;
+    chapterYtTimerRef.current = null;
+    if (!pending) return;
+    try {
+      if (ytPlayer && isYtReady) {
+        if (isPlayingRef.current) {
+          ytPlayer.loadVideoById(pending.youtubeId, pending.resumeTime);
+        } else {
+          ytPlayer.cueVideoById(pending.youtubeId, pending.resumeTime);
+        }
       }
+    } catch (e) {
+      console.warn('YT load chapter video error:', e);
     }
-  };
+  }, [ytPlayer, isYtReady]);
 
-  const jumpRelative = (deltaSeconds: number) => {
-    if (!currentBook) return;
-    seekTo(currentTime + deltaSeconds);
-  };
-
-  const nextChapter = () => {
-    if (!currentBook) return;
-    if (currentBook.currentChapterIndex < currentBook.chapters.length - 1) {
-      selectChapter(currentBook.currentChapterIndex + 1);
-      showToast(`עבר אל ${currentBook.chapters[currentBook.currentChapterIndex + 1].title}`);
-    } else {
-      showToast('הגעת לסוף הספר / הפלייליסט');
-    }
-  };
-
-  const previousChapter = () => {
-    if (!currentBook) return;
-    if (currentBook.currentChapterIndex > 0) {
-      selectChapter(currentBook.currentChapterIndex - 1);
-      showToast(`עבר אל ${currentBook.chapters[currentBook.currentChapterIndex - 1].title}`);
-    } else {
-      seekTo(0);
-      showToast('תחילת הפרק');
-    }
-  };
-
-  const selectChapter = (index: number) => {
+  const selectChapter = useCallback((index: number) => {
     if (!currentBook) return;
     if (index >= 0 && index < currentBook.chapters.length) {
       // 1. Save progress of current chapter before leaving
@@ -569,9 +623,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       // 2. Restore saved timestamp in the target chapter (or 0)
       const resumeTime = currentBook.chapterProgress?.[index] ?? 0;
 
-      // 3. Update active refs and local state
+      // 3. Update active refs and local state synchronously so spam taps accumulate
       currentTimeRef.current = resumeTime;
       currentChapterIndexRef.current = index;
+      pendingSeekTargetRef.current = null;
+      seekPendingUntilRef.current = Date.now() + 600;
       setCurrentTime(resumeTime);
 
       setBooks((prev) => {
@@ -598,17 +654,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         return nextBooks;
       });
 
-      // 4. Load or cue in YouTube player
+      // 4. Debounce the expensive YT load so rapid next/prev ends on the last chapter
       if (targetChapter.youtubeId && ytPlayer && isYtReady) {
-        try {
-          if (isPlaying) {
-            ytPlayer.loadVideoById(targetChapter.youtubeId, resumeTime);
-          } else {
-            ytPlayer.cueVideoById(targetChapter.youtubeId, resumeTime);
-          }
-        } catch (e) {
-          console.warn('YT load chapter video error:', e);
-        }
+        pendingChapterYtRef.current = {
+          youtubeId: targetChapter.youtubeId,
+          resumeTime,
+        };
+        if (chapterYtTimerRef.current) clearTimeout(chapterYtTimerRef.current);
+        chapterYtTimerRef.current = setTimeout(() => {
+          flushPendingChapterYt();
+        }, 150);
       } else if (!targetChapter.youtubeId) {
         let chapterOffset = 0;
         for (let i = 0; i < index; i++) {
@@ -617,7 +672,38 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         seekTo(chapterOffset + resumeTime);
       }
     }
-  };
+  }, [currentBook, saveProgressNow, flushPendingChapterYt, seekTo, ytPlayer, isYtReady]);
+
+  const nextChapter = useCallback(() => {
+    if (!currentBook) return;
+    // Use ref index so rapid taps accumulate instead of repeating the same +1
+    const liveIdx = currentChapterIndexRef.current ?? currentBook.currentChapterIndex ?? 0;
+    if (liveIdx < currentBook.chapters.length - 1) {
+      const nextIdx = liveIdx + 1;
+      // Pre-advance ref synchronously so the next spam tap builds on it
+      currentChapterIndexRef.current = nextIdx;
+      selectChapter(nextIdx);
+      const title = currentBook.chapters[nextIdx]?.title;
+      if (title) showToast(`עבר אל ${title}`);
+    } else {
+      showToast('הגעת לסוף הספר / הפלייליסט');
+    }
+  }, [currentBook, selectChapter]);
+
+  const previousChapter = useCallback(() => {
+    if (!currentBook) return;
+    const liveIdx = currentChapterIndexRef.current ?? currentBook.currentChapterIndex ?? 0;
+    if (liveIdx > 0) {
+      const prevIdx = liveIdx - 1;
+      currentChapterIndexRef.current = prevIdx;
+      selectChapter(prevIdx);
+      const title = currentBook.chapters[prevIdx]?.title;
+      if (title) showToast(`עבר אל ${title}`);
+    } else {
+      seekTo(0);
+      showToast('תחילת הפרק');
+    }
+  }, [currentBook, selectChapter, seekTo]);
 
   const selectBook = (bookId: string, autoPlay = true, navigateToPlayer = true) => {
     // 1. Save progress in the outgoing book
