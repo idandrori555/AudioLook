@@ -507,12 +507,25 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow]);
 
-  const showToast = (message: string) => {
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string) => {
     setToastMessage(message);
-    setTimeout(() => {
+    // Clear any pending dismiss so rapid toasts each get a full 2.8s window
+    // and an old timer can never clear a newer message early.
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
       setToastMessage((cur) => (cur === message ? null : cur));
+      toastTimerRef.current = null;
     }, 2800);
-  };
+  }, []);
+
+  // Cleanup toast dismiss timer on unmount (avoids setState after unmount)
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const flushPendingSeek = useCallback(() => {
     const target = pendingSeekTargetRef.current;

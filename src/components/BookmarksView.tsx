@@ -1,17 +1,56 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAudio } from '../context/AudioContext';
 
 export default function BookmarksView() {
-  const { bookmarks, removeBookmark, selectBook, selectChapter, seekTo, setActiveTab } = useAudio();
+  const { bookmarks, removeBookmark, selectBook, selectChapter, seekTo, setActiveTab, isYtReady } = useAudio();
+
+  // Always call the latest closures from deferred timers — selectChapter/seekTo
+  // are bound to `currentBook`, which changes right after selectBook switches books.
+  // Calling a stale closure would operate on the previous book.
+  const latestActionsRef = useRef({ selectChapter, seekTo });
+  useEffect(() => {
+    latestActionsRef.current = { selectChapter, seekTo };
+  }, [selectChapter, seekTo]);
+
+  const jumpTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    const timers = jumpTimersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      jumpTimersRef.current = [];
+    };
+  }, []);
 
   const handleJumpToBookmark = (bookId: string, timestampSeconds: number, chapterNumber?: number) => {
+    const ytWasReady = isYtReady;
+    // Autoplay so listening resumes; the deferred seeks below (debounced in
+    // context) win as the last write over the book's resume-position cue.
     selectBook(bookId, true, true);
-    setTimeout(() => {
-      if (chapterNumber && chapterNumber > 0) {
-        selectChapter(chapterNumber - 1);
+    // 250ms lets the book-switch state commit so selectChapter targets the new book.
+    const t1 = setTimeout(() => {
+      try {
+        if (chapterNumber && chapterNumber > 0) {
+          latestActionsRef.current.selectChapter(chapterNumber - 1);
+        }
+        latestActionsRef.current.seekTo(timestampSeconds);
+      } catch (e) {
+        console.warn('Bookmark jump failed:', e);
       }
-      seekTo(timestampSeconds);
-    }, 120);
+    }, 250);
+    jumpTimersRef.current.push(t1);
+    // Confirm pass: if YT wasn't ready at click time, the first seek's player
+    // command may have been dropped — re-assert once it likely is ready.
+    // (Storage was still updated, so the position self-heals regardless.)
+    if (!ytWasReady) {
+      const t2 = setTimeout(() => {
+        try {
+          latestActionsRef.current.seekTo(timestampSeconds);
+        } catch (e) {
+          console.warn('Bookmark confirm-seek failed:', e);
+        }
+      }, 1500);
+      jumpTimersRef.current.push(t2);
+    }
   };
 
   return (
