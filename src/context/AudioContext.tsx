@@ -229,10 +229,25 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // Consecutive "paused" reads from the YT player (debounces transient states
   // during our own play/seek commands so external pauses need 2 ticks to sync).
   const ytPausedStreakRef = useRef<number>(0);
+  // Consecutive "cued/unstarted" reads while we intend to play (self-heal below).
+  const ytCuedStreakRef = useRef<number>(0);
+  // Single-owner book-switch handshake: selectBook() issues the YT command
+  // immediately AND records it here so the [currentBook?.id] sync effect
+  // doesn't follow up with a conflicting cueVideoById that would cancel
+  // the autoplay load (the "stuck at 1st second" bug).
+  const lastYtSwitchRef = useRef<{ bookId: string; videoId: string; start: number; at: number } | null>(null);
+  // Autoplay intent for the sync effect (covers "YT not ready yet" case:
+  // selectBook stores intent, sync effect consumes it once player is ready).
+  const pendingAutoPlayRef = useRef<boolean | null>(null);
+  const playbackSpeedRef = useRef<number>(1);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    playbackSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
 
   // Cleanup pending timers on unmount
   useEffect(() => {
@@ -394,7 +409,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // Sync current time & duration when switching book
+  // Sync current time & duration when switching book.
+  // Single-owner rule: selectBook() already issues the YT command for
+  // user-initiated switches (see lastYtSwitchRef). This effect must NOT
+  // blindly cue afterwards, or the cue cancels the autoplay load and the
+  // new book gets stuck at second 0 while isPlaying stays true.
   useEffect(() => {
     if (currentBook) {
       const chIdx = currentBook.currentChapterIndex || 0;
@@ -410,8 +429,42 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         currentBook.youtubeId;
 
       if (videoToCue && ytPlayer && isYtReady) {
+        // Skip if selectBook() just handled this exact switch.
+        const last = lastYtSwitchRef.current;
+        if (
+          last &&
+          last.bookId === currentBook.id &&
+          last.videoId === videoToCue &&
+          Math.abs(last.start - resumeTime) < 2 &&
+          Date.now() - last.at < 3000
+        ) {
+          pendingAutoPlayRef.current = null;
+          return;
+        }
+        // Otherwise (initial mount, YT just became ready, restore): honor
+        // the stored autoplay intent, falling back to current play state.
+        const shouldPlay = pendingAutoPlayRef.current ?? isPlayingRef.current;
+        pendingAutoPlayRef.current = null;
         try {
-          ytPlayer.cueVideoById(videoToCue, resumeTime);
+          if (shouldPlay) {
+            ytPausedStreakRef.current = 0;
+            ytCuedStreakRef.current = 0;
+            ytPlayer.loadVideoById(videoToCue, resumeTime);
+            const rate = playbackSpeedRef.current;
+            if (rate && rate !== 1 && typeof ytPlayer.setPlaybackRate === 'function') {
+              try {
+                ytPlayer.setPlaybackRate(rate);
+              } catch {}
+            }
+          } else {
+            ytPlayer.cueVideoById(videoToCue, resumeTime);
+          }
+          lastYtSwitchRef.current = {
+            bookId: currentBook.id,
+            videoId: videoToCue,
+            start: resumeTime,
+            at: Date.now(),
+          };
         } catch (e) {
           console.warn('Failed to cue video on YouTube player:', e);
         }
@@ -499,15 +552,29 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             const st = ytPlayer.getPlayerState();
             if (st === 1) {
               ytPausedStreakRef.current = 0;
+              ytCuedStreakRef.current = 0;
               if (!isPlayingRef.current) setIsPlaying(true);
             } else if (st === 2) {
               ytPausedStreakRef.current += 1;
+              ytCuedStreakRef.current = 0;
               if (ytPausedStreakRef.current >= 2 && isPlayingRef.current) {
                 setIsPlaying(false);
                 saveProgressNow();
               }
+            } else if ((st === 5 || st === -1) && isPlayingRef.current) {
+              // Self-heal: we intend to play but the player is sitting cued/
+              // unstarted (e.g. a cue won a race against a load). Nudge it.
+              ytPausedStreakRef.current = 0;
+              ytCuedStreakRef.current += 1;
+              if (ytCuedStreakRef.current >= 2) {
+                try {
+                  if (typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+                } catch {}
+                ytCuedStreakRef.current = 0;
+              }
             } else {
               ytPausedStreakRef.current = 0;
+              if (st === 3) ytCuedStreakRef.current = 0;
               // NOTE: ENDED(0) is owned by YouTubeHost.onStateChange (fires once
               // per finish and advances or completes) — the poller stays out so
               // completion toasts can't repeat while state 0 persists.
@@ -920,19 +987,51 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const videoToPlay =
       (target.isPlaylist && target.chapters?.[resumeChapterIndex]?.youtubeId) || target.youtubeId;
 
+    // Record intent first so the [currentBook?.id] sync effect can honor/skip
+    // correctly, including when YT isn't ready yet.
+    pendingAutoPlayRef.current = autoPlay;
+    // Keep poller from clobbering the fresh resume position with a stale
+    // getCurrentTime() read while the new video loads.
+    seekPendingUntilRef.current = Date.now() + 1000;
+    ytPausedStreakRef.current = 0;
+    ytCuedStreakRef.current = 0;
+
     if (videoToPlay && ytPlayer && isYtReady) {
       try {
         if (autoPlay) {
           ytPlayer.loadVideoById(videoToPlay, resumeTime);
+          const rate = playbackSpeedRef.current;
+          if (rate && rate !== 1 && typeof ytPlayer.setPlaybackRate === 'function') {
+            try {
+              ytPlayer.setPlaybackRate(rate);
+            } catch {}
+          }
+          isPlayingRef.current = true;
           setIsPlaying(true);
         } else {
           ytPlayer.cueVideoById(videoToPlay, resumeTime);
+          isPlayingRef.current = false;
+          setIsPlaying(false);
         }
+        lastYtSwitchRef.current = {
+          bookId,
+          videoId: videoToPlay,
+          start: resumeTime,
+          at: Date.now(),
+        };
+        pendingAutoPlayRef.current = null;
       } catch (e) {
         console.warn('Failed to switch video on YT player:', e);
       }
-    } else if (autoPlay) {
-      setIsPlaying(true);
+    } else {
+      if (autoPlay) {
+        isPlayingRef.current = true;
+        setIsPlaying(true);
+      } else {
+        isPlayingRef.current = false;
+        setIsPlaying(false);
+      }
+      // Intent stays pending: the sync effect consumes it once YT is ready.
     }
 
     if (navigateToPlayer) {
