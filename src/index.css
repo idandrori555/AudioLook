@@ -157,6 +157,18 @@
   animation: play-halo 2.8s ease-in-out infinite;
 }
 
+/* Chapter-row entrance: GPU-composited keyframe instead of per-row JS springs.
+   A playlist can hold dozens of rows — that many simultaneous springs jank
+   on real phone GPUs, especially while the blurred drawer panel repaints.
+   One shared keyframe with a per-row delay stays smooth. */
+.drawer-row-in {
+  animation: drawer-row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes drawer-row-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* Tiny live equalizer bars (drawer + player pill). */
 .eq-bar {
   transform-origin: bottom;
@@ -195,6 +207,7 @@
   .cover-aura-playing,
   .play-halo,
   .eq-bar,
+  .drawer-row-in,
   .progress-shimmer::after {
     animation: none;
   }

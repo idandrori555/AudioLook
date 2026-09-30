@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
+import { springFast, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 export default function ChaptersDrawer() {
   const {
@@ -33,9 +33,9 @@ export default function ChaptersDrawer() {
       >
       <motion.div
         key="chapters-panel"
-        initial={reduced ? { opacity: 0 } : { opacity: 0, x: -88 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, x: -56 }}
         animate={{ opacity: 1, x: 0 }}
-        exit={reduced ? { opacity: 0 } : { opacity: 0, x: -64 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, x: -40 }}
         transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md h-dvh flex flex-col !rounded-none !border-y-0 !border-l-0 pt-[env(safe-area-inset-top,0px)]"
         dir="rtl"
@@ -77,16 +77,18 @@ export default function ChaptersDrawer() {
               const isCurrent = index === currentBook.currentChapterIndex;
 
               return (
-                <motion.div
+                <div
                   key={chapter.id}
-                  initial={{ opacity: 0, x: reduced ? 0 : 18 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={tx(reduced, { ...springGentle, delay: staggerDelay(index, 0.03, 0.3) })}
                   onClick={() => {
                     selectChapter(index);
                     setIsChaptersDrawerOpen(false);
                   }}
-                  className={`glass-static p-3.5 rounded-xl transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer flex items-center justify-between gap-3 ${
+                  style={
+                    reduced
+                      ? undefined
+                      : { animationDelay: `${Math.round(staggerDelay(index, 0.03, 0.3) * 1000)}ms` }
+                  }
+                  className={`glass-static p-3.5 rounded-xl ${reduced ? '' : 'drawer-row-in '}transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer flex items-center justify-between gap-3 ${
                     isCurrent
                       ? '!border-[#ffb86b]/40 text-[#ffb86b] shadow-[0_8px_24px_-8px_rgb(255_184_107/0.35)]'
                       : 'text-white/90 hover:border-[#ffb86b]/20'
@@ -129,7 +131,7 @@ export default function ChaptersDrawer() {
                       </span>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })
           )}
