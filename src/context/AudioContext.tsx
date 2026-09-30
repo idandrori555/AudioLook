@@ -48,6 +48,7 @@ interface AudioContextType {
   previousChapter: () => void;
   selectChapter: (index: number) => void;
   selectBook: (bookId: string, autoPlay?: boolean, navigateToPlayer?: boolean) => void;
+  jumpToBookmark: (bookId: string, timestampSeconds: number, chapterNumber?: number) => void;
   addBook: (book: Book) => void;
   deleteBook: (bookId: string) => void;
   markBookCompleted: (bookId: string) => void;
@@ -1039,6 +1040,152 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Atomic bookmark jump: book + chapter + timestamp in a SINGLE YT command.
+  // The old BookmarksView flow (selectBook → delayed selectChapter → delayed
+  // seekTo) raced: the seek's 120ms debounce fired BEFORE the chapter's 150ms
+  // load, so the chapter load (with stale resumeTime) overwrote the bookmark
+  // seek — landing on the right book but the wrong time.
+  const jumpToBookmark = (bookId: string, timestampSeconds: number, chapterNumber?: number) => {
+    const rawTarget = books.find((b) => b.id === bookId);
+    if (!rawTarget) return;
+
+    // Save outgoing position first (no-op if same book, harmless).
+    saveProgressNow();
+
+    // Revive completed books as listening, but keep the bookmark position
+    // (unlike selectBook which restarts completed books from 0).
+    let target = rawTarget;
+    if (rawTarget.category === 'completed') {
+      target = { ...rawTarget, category: 'listening' as const };
+    }
+
+    const hasChapters = (target.chapters?.length ?? 0) > 0;
+    let chapterIdx = target.currentChapterIndex || 0;
+    if (chapterNumber && chapterNumber > 0 && hasChapters) {
+      const candidate = chapterNumber - 1;
+      if (candidate >= 0 && candidate < (target.chapters?.length ?? 0)) {
+        chapterIdx = candidate;
+      }
+    }
+
+    const targetChapter = hasChapters ? target.chapters[chapterIdx] : undefined;
+    const startSeconds = Math.max(0, Math.floor(timestampSeconds || 0));
+
+    // Kill any in-flight debounced chapter-load / seek so they can't
+    // overwrite this jump after it issues.
+    if (chapterYtTimerRef.current) {
+      clearTimeout(chapterYtTimerRef.current);
+      chapterYtTimerRef.current = null;
+    }
+    pendingChapterYtRef.current = null;
+    if (seekDebounceTimerRef.current) {
+      clearTimeout(seekDebounceTimerRef.current);
+      seekDebounceTimerRef.current = null;
+    }
+    pendingSeekTargetRef.current = null;
+
+    const isYtChapter = Boolean(targetChapter?.youtubeId || (!hasChapters && target.youtubeId));
+    const videoToPlay =
+      targetChapter?.youtubeId || (!hasChapters ? target.youtubeId : undefined);
+
+    // For non-YT chapters timestamp is absolute (global) time; for YT it is
+    // per-video (chapter-local) time.
+    let chapterOffset = 0;
+    if (!isYtChapter && hasChapters) {
+      for (let i = 0; i < chapterIdx; i++) {
+        chapterOffset += target.chapters[i].duration || 0;
+      }
+    }
+    const displayTime = isYtChapter ? startSeconds : chapterOffset + startSeconds;
+
+    setCurrentBookId(bookId);
+    currentBookIdRef.current = bookId;
+    currentChapterIndexRef.current = chapterIdx;
+    currentTimeRef.current = displayTime;
+    setCurrentTime(displayTime);
+    if (target.totalDurationSeconds) setDuration(target.totalDurationSeconds);
+
+    try {
+      localStorage.setItem('audiolook_last_book_id', bookId);
+    } catch {}
+
+    pendingAutoPlayRef.current = true;
+    seekPendingUntilRef.current = Date.now() + 1000;
+    ytPausedStreakRef.current = 0;
+    ytCuedStreakRef.current = 0;
+
+    const chapterProgressUpdate = isYtChapter
+      ? startSeconds
+      : displayTime;
+
+    setBooks((prev) =>
+      prev.map((b) => {
+        if (b.id !== bookId) return b;
+        return {
+          ...b,
+          category: 'listening' as const,
+          currentChapterIndex: chapterIdx,
+          currentTimeSeconds: chapterProgressUpdate,
+          youtubeId: targetChapter?.youtubeId || b.youtubeId,
+          chapterProgress: {
+            ...(b.chapterProgress || {}),
+            [chapterIdx]: chapterProgressUpdate,
+          },
+          lastListenedAt: new Date().toISOString(),
+        };
+      }),
+    );
+    try {
+      const raw = localStorage.getItem('audiolook_user_books_clean');
+      if (raw) {
+        const stored: Book[] = JSON.parse(raw);
+        const updated = stored.map((b) => {
+          if (b.id !== bookId) return b;
+          return {
+            ...b,
+            category: 'listening' as const,
+            currentChapterIndex: chapterIdx,
+            currentTimeSeconds: chapterProgressUpdate,
+            youtubeId: targetChapter?.youtubeId || b.youtubeId,
+            chapterProgress: {
+              ...(b.chapterProgress || {}),
+              [chapterIdx]: chapterProgressUpdate,
+            },
+            lastListenedAt: new Date().toISOString(),
+          };
+        });
+        localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Failed to save bookmark jump:', e);
+    }
+
+    if (videoToPlay && ytPlayer && isYtReady) {
+      try {
+        ytPlayer.loadVideoById(videoToPlay, startSeconds);
+        const rate = playbackSpeedRef.current;
+        if (rate && rate !== 1 && typeof ytPlayer.setPlaybackRate === 'function') {
+          try {
+            ytPlayer.setPlaybackRate(rate);
+          } catch {}
+        }
+        isPlayingRef.current = true;
+        setIsPlaying(true);
+        lastYtSwitchRef.current = { bookId, videoId: videoToPlay, start: startSeconds, at: Date.now() };
+        pendingAutoPlayRef.current = null;
+      } catch (e) {
+        console.warn('Bookmark jump YT load failed:', e);
+      }
+    } else {
+      // YT not ready (or non-YT book): optimistic playing state; the
+      // [currentBook?.id] sync effect consumes pendingAutoPlayRef once ready.
+      isPlayingRef.current = true;
+      setIsPlaying(true);
+    }
+
+    setActiveTab('player');
+  };
+
   const addBook = (newBook: Book) => {
     setBooks((prev) => [newBook, ...prev]);
     setCurrentBookId(newBook.id);
@@ -1277,6 +1424,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         previousChapter,
         selectChapter,
         selectBook,
+        jumpToBookmark,
         addBook,
         deleteBook,
         markBookCompleted,
