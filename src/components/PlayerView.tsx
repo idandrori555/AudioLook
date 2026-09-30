@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
@@ -46,15 +46,19 @@ export default function PlayerView() {
   // scrubber), so "next" throws the old card off to the left like a page turn.
   const chapterIdx = currentBook?.currentChapterIndex ?? 0;
   const bookId = currentBook?.id ?? null;
-  const prevPosRef = useRef<{ bookId: string | null; idx: number }>({ bookId, idx: chapterIdx });
+  // Render-phase derivation (not an effect): AnimatePresence resolves exit/
+  // enter variants during the commit render, so the direction must already be
+  // fresh in that pass. Deriving it in useEffect updated tossDir one commit
+  // too late — the backward skip replayed the forward toss. React applies
+  // these setStates with an immediate re-render before committing (no flash).
+  const [prevPos, setPrevPos] = useState<{ bookId: string | null; idx: number }>({ bookId, idx: chapterIdx });
   const [tossDir, setTossDir] = useState<1 | -1>(1);
-  useEffect(() => {
-    const prev = prevPosRef.current;
-    if (prev.bookId === bookId && prev.idx !== chapterIdx) {
-      setTossDir(chapterIdx > prev.idx ? 1 : -1);
+  if (prevPos.bookId !== bookId || prevPos.idx !== chapterIdx) {
+    if (prevPos.bookId === bookId && prevPos.idx !== chapterIdx) {
+      setTossDir(chapterIdx > prevPos.idx ? 1 : -1);
     }
-    prevPosRef.current = { bookId, idx: chapterIdx };
-  }, [bookId, chapterIdx]);
+    setPrevPos({ bookId, idx: chapterIdx });
+  }
   const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
 
   // Tinder-style card toss variants (custom = tossDir).
