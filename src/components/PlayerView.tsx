@@ -327,10 +327,6 @@ export default function PlayerView() {
             /* Standard or Audio-only Cover Artwork — shared-element target
                for the library-thumbnail → player morph */
             <div className="relative">
-              <div
-                aria-hidden="true"
-                className={`absolute -inset-8 rounded-[2rem] bg-[#ffb86b]/20 blur-3xl pointer-events-none ${isPlaying && !reduced ? 'cover-aura-playing' : 'opacity-40'}`}
-              />
             <motion.div
               layoutId={`cover-${currentBook.id}`}
               transition={tx(reduced, springSnappy)}
@@ -338,7 +334,7 @@ export default function PlayerView() {
               animate={{ scale: 1, opacity: 1 }}
               whileTap={reduced ? undefined : { scale: 0.98 }}
               style={{ rotate: frameRotate }}
-              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border bg-[#18191c] transition-colors duration-500 ${coverFree ? 'overflow-visible z-20' : 'overflow-hidden'} ${isPlaying ? 'border-[#ffb86b]/30' : 'border-white/[0.08]'}`}
+              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl ${coverFree ? 'overflow-visible z-20' : 'overflow-hidden'}`}
             >
               <AnimatePresence initial={false} custom={{ dir: tossDir, soft: softEnter }}>
                 <motion.img
