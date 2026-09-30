@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import type { PanInfo } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
 import { FALLBACK_COVER } from './CoverImg';
@@ -62,16 +63,18 @@ export default function PlayerView() {
   const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
 
   // Tinder-style card toss variants (custom = tossDir).
+  // Slightly overshooting spring so chapter changes feel playful, not stiff.
+  const tossSpring = { type: 'spring', stiffness: 380, damping: 30, mass: 0.7 } as const;
   const tossVariants = {
     enter: (dir: number) =>
       reduced
         ? { opacity: 0 }
-        : { opacity: 0, x: dir * 220, rotate: dir * 7, scale: 0.92 },
+        : { opacity: 0, x: dir * 260, rotate: dir * 10, scale: 0.9 },
     center: { opacity: 1, x: 0, rotate: 0, scale: 1 },
     exit: (dir: number) =>
       reduced
         ? { opacity: 0 }
-        : { opacity: 0, x: -dir * 300, rotate: -dir * 13, scale: 0.94 },
+        : { opacity: 0, x: -dir * 340, rotate: -dir * 14, scale: 0.93 },
   };
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
@@ -173,6 +176,26 @@ export default function PlayerView() {
 
   const isYouTubeBook = Boolean(currentBook.youtubeId);
 
+  // Tinder gesture: fling the cover horizontally to switch chapters.
+  // Same availability as the next/prev buttons (playlists + multi-chapter).
+  const canSwitchChapters = Boolean(
+    currentBook.isPlaylist ||
+      (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1),
+  );
+  const handleCoverDragEnd = (_: unknown, info: PanInfo) => {
+    if (!canSwitchChapters) return;
+    const { x: offsetX } = info.offset;
+    const { x: velocityX } = info.velocity;
+    // Screen pixels: fling left = next chapter, fling right = previous,
+    // matching the toss direction (old card exits to the left on "next").
+    if (offsetX <= -90 || velocityX <= -600) {
+      nextChapter();
+    } else if (offsetX >= 90 || velocityX >= 600) {
+      previousChapter();
+    }
+    // Below threshold: the elastic constraints spring the card back.
+  };
+
   return (
     <div className="relative min-h-[calc(100dvh-4rem)] flex flex-col bg-[#121316] text-[#e3e2e6] select-none page-with-nav">
       {/* Header */}
@@ -268,8 +291,15 @@ export default function PlayerView() {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={tx(reduced, springSnappy)}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  transition={tx(reduced, tossSpring)}
+                  drag={canSwitchChapters ? 'x' : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.55}
+                  dragMomentum={false}
+                  onDragEnd={handleCoverDragEnd}
+                  whileDrag={{ cursor: 'grabbing', scale: 1.03 }}
+                  className="absolute inset-0 w-full h-full object-cover touch-pan-y cursor-grab"
+                  title={canSwitchChapters ? 'גרור הצידה למעבר פרק' : undefined}
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
                   draggable={false}
