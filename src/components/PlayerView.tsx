@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion, useMotionValue, animate } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
@@ -62,19 +62,27 @@ export default function PlayerView() {
   }
   const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
 
-  // Tinder-style card toss variants (custom = tossDir).
+  // Tinder-style card toss variants (custom = { dir, soft }).
   // Slightly overshooting spring so chapter changes feel playful, not stiff.
+  // `soft` enters are for fling switches: the flung card's flight IS the
+  // show, so the incoming card just materializes instead of streaking in.
   const tossSpring = { type: 'spring', stiffness: 380, damping: 30, mass: 0.7 } as const;
+  interface CoverCustom {
+    dir: 1 | -1;
+    soft: boolean;
+  }
   const tossVariants = {
-    enter: (dir: number) =>
+    enter: (c: CoverCustom) =>
       reduced
         ? { opacity: 0 }
-        : { opacity: 0, x: dir * 260, rotate: dir * 10, scale: 0.9 },
-    center: { opacity: 1, x: 0, rotate: 0, scale: 1 },
-    exit: (dir: number) =>
+        : c.soft
+          ? { opacity: 0, scale: 0.93 }
+          : { opacity: 0, x: c.dir * 260, rotate: c.dir * 10, scale: 0.9 },
+    center: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 },
+    exit: (c: CoverCustom) =>
       reduced
         ? { opacity: 0 }
-        : { opacity: 0, x: -dir * 340, rotate: -dir * 14, scale: 0.93 },
+        : { opacity: 0, x: -c.dir * 340, rotate: -c.dir * 14, scale: 0.93 },
   };
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
@@ -176,24 +184,72 @@ export default function PlayerView() {
 
   const isYouTubeBook = Boolean(currentBook.youtubeId);
 
-  // Tinder gesture: fling the cover horizontally to switch chapters.
+  // Tinder gesture: fling the cover to switch chapters — free in 2D, the
+  // frame tilts with your finger, and the card breaks out of its square.
   // Same availability as the next/prev buttons (playlists + multi-chapter).
   const canSwitchChapters = Boolean(
     currentBook.isPlaylist ||
       (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1),
   );
+  // Frame tilt driven by the drag (the frame owns no rotate variants, so no
+  // fight with the card's enter/exit toss). Card x/y stay internal to the
+  // dragged element, so exits correctly continue from the release point.
+  const frameRotate = useMotionValue(0);
+  // While true the frame stops clipping, so the card visibly leaves its box.
+  const [coverFree, setCoverFree] = useState(false);
+  // Soft incoming toss right after a fling switch (the flight was the show).
+  const [softEnter, setSoftEnter] = useState(false);
+  const coverRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const softEnterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
+      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
+    };
+  }, []);
+
+  const scheduleCoverRestore = (ms: number) => {
+    if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
+    coverRestoreTimer.current = setTimeout(() => setCoverFree(false), ms);
+  };
+  const settleFrame = () => {
+    animate(frameRotate, 0, { type: 'spring', stiffness: 320, damping: 24 });
+  };
+
+  const handleCoverDragStart = () => {
+    if (!canSwitchChapters) return;
+    if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
+    if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
+    setCoverFree(true);
+  };
+  const handleCoverDrag = (_: unknown, info: PanInfo) => {
+    frameRotate.set(Math.max(-14, Math.min(14, info.offset.x * 0.06)));
+  };
   const handleCoverDragEnd = (_: unknown, info: PanInfo) => {
     if (!canSwitchChapters) return;
+    settleFrame();
     const { x: offsetX } = info.offset;
     const { x: velocityX } = info.velocity;
     // Screen pixels: fling left = next chapter, fling right = previous,
     // matching the toss direction (old card exits to the left on "next").
+    // Vertical movement is free play and always springs back.
     if (offsetX <= -90 || velocityX <= -600) {
+      setSoftEnter(true);
+      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
+      softEnterTimer.current = setTimeout(() => setSoftEnter(false), 650);
       nextChapter();
+      // Let the flung card fly out freely before re-clipping the frame.
+      scheduleCoverRestore(550);
     } else if (offsetX >= 90 || velocityX >= 600) {
+      setSoftEnter(true);
+      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
+      softEnterTimer.current = setTimeout(() => setSoftEnter(false), 650);
       previousChapter();
+      scheduleCoverRestore(550);
+    } else {
+      // Below threshold: the elastic constraints spring the card home.
+      scheduleCoverRestore(380);
     }
-    // Below threshold: the elastic constraints spring the card back.
   };
 
   return (
@@ -281,24 +337,27 @@ export default function PlayerView() {
               initial={reduced ? false : { scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               whileTap={reduced ? undefined : { scale: 0.98 }}
-              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border bg-[#18191c] transition-colors duration-500 ${isPlaying ? 'border-[#ffb86b]/30' : 'border-white/[0.08]'}`}
+              style={{ rotate: frameRotate }}
+              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border bg-[#18191c] transition-colors duration-500 ${coverFree ? 'overflow-visible z-20' : 'overflow-hidden'} ${isPlaying ? 'border-[#ffb86b]/30' : 'border-white/[0.08]'}`}
             >
-              <AnimatePresence initial={false} custom={tossDir}>
+              <AnimatePresence initial={false} custom={{ dir: tossDir, soft: softEnter }}>
                 <motion.img
                   key={chapterKey}
-                  custom={tossDir}
+                  custom={{ dir: tossDir, soft: softEnter }}
                   variants={tossVariants}
                   initial="enter"
                   animate="center"
                   exit="exit"
                   transition={tx(reduced, tossSpring)}
-                  drag={canSwitchChapters ? 'x' : false}
-                  dragConstraints={{ left: 0, right: 0 }}
+                  drag={canSwitchChapters ? true : false}
+                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
                   dragElastic={0.55}
                   dragMomentum={false}
+                  onDragStart={handleCoverDragStart}
+                  onDrag={handleCoverDrag}
                   onDragEnd={handleCoverDragEnd}
                   whileDrag={{ cursor: 'grabbing', scale: 1.03 }}
-                  className="absolute inset-0 w-full h-full object-cover touch-pan-y cursor-grab"
+                  className="absolute inset-0 w-full h-full object-cover rounded-2xl touch-pan-y cursor-grab"
                   title={canSwitchChapters ? 'גרור הצידה למעבר פרק' : undefined}
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
