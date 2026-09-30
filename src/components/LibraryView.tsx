@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { pressTap, springGentle, springSnappy, staggerDelay, tx, useAppReducedMotion, useIntroPlayed } from './motion';
+import CoverImg from './CoverImg';
 
 
 export default function LibraryView() {
@@ -147,12 +148,12 @@ export default function LibraryView() {
         <button
           onClick={handleImport}
           disabled={isImporting}
-          className="flex-shrink-0 px-3.5 py-1.5 rounded-xl bg-white/[0.07] hover:bg-[#ffb86b] hover:text-[#492900] text-[13px] font-medium text-white/85 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          className="flex-shrink-0 px-2.5 py-1.5 rounded-xl bg-white/[0.07] hover:bg-[#ffb86b] hover:text-[#492900] text-[13px] font-medium text-white/85 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           id="quick-btn"
         >
           {importStatus === 'importing' ? (
             <>
-              <span className="material-symbols-outlined text-[15px] animate-spin">refresh</span>
+              <span className="material-symbols-outlined text-[15px] animate-spin motion-reduce:animate-none">refresh</span>
               <span>מייבא...</span>
             </>
           ) : importStatus === 'success' ? (
@@ -234,7 +235,7 @@ export default function LibraryView() {
               onClick={() => setActiveTab('player')}
             >
               <div className="relative w-20 h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-md bg-[#0a0b0d] ring-1 ring-white/10 group">
-                <img
+                <CoverImg
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
@@ -373,10 +374,11 @@ export default function LibraryView() {
                     transition={tx(reduced, springSnappy)}
                     className="relative w-14 h-19 rounded-md overflow-hidden flex-shrink-0 shadow-sm bg-[#0a0b0d] ring-1 ring-white/5"
                   >
-                    <img
+                    <CoverImg
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       alt={book.title}
                       src={book.coverUrl}
+                      iconClassName="text-[16px]"
                     />
                     {isDone && (
                       <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
@@ -477,55 +479,55 @@ export default function LibraryView() {
 
       {/* Delete confirmation */}
       <AnimatePresence>
-      {pendingDeleteBookId && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={tx(reduced, springSnappy)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
-          onClick={() => setPendingDeleteBookId(null)}
-        >
+        {pendingDeleteBookId && (
           <motion.div
-            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={tx(reduced, springSnappy)}
-            className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
-            dir="rtl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+            onClick={() => setPendingDeleteBookId(null)}
           >
-            <div className="glass-glint" />
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-red-400 text-[22px]">delete</span>
-              <h3 className="text-[17px] font-semibold text-white">למחוק את הספר?</h3>
-            </div>
-            <p className="text-[13px] text-white/60 leading-relaxed">
-              {pendingDeleteBook
-                ? `״${pendingDeleteBook.title}״ יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.`
-                : 'הספר יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.'}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPendingDeleteBookId(null)}
-                className="flex-1 h-11 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-[14px] font-medium transition-colors cursor-pointer"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={() => {
-                  if (pendingDeleteBookId) deleteBook(pendingDeleteBookId);
-                  setPendingDeleteBookId(null);
-                }}
-                className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-400 text-white text-[14px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[18px]">delete</span>
-                <span>מחק</span>
-              </button>
-            </div>
+            <motion.div
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+              transition={tx(reduced, springSnappy)}
+              className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
+              dir="rtl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="glass-glint" />
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-red-400 text-[22px]">delete</span>
+                <h3 className="text-[17px] font-semibold text-white">למחוק את הספר?</h3>
+              </div>
+              <p className="text-[13px] text-white/60 leading-relaxed">
+                {pendingDeleteBook
+                  ? `״${pendingDeleteBook.title}״ יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.`
+                  : 'הספר יימחק מהספרייה יחד עם הסימניות שלו. לא ניתן לבטל פעולה זו.'}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPendingDeleteBookId(null)}
+                  className="flex-1 h-11 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-[14px] font-medium transition-colors cursor-pointer"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={() => {
+                    if (pendingDeleteBookId) deleteBook(pendingDeleteBookId);
+                    setPendingDeleteBookId(null);
+                  }}
+                  className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-400 text-white text-[14px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  <span>מחק</span>
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
       </AnimatePresence>
     </main>
   );

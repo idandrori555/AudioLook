@@ -11,8 +11,6 @@
     --color-primary-container: #e89838;
     --color-on-primary: #492900;
     --sab: env(safe-area-inset-bottom, 0px);
-    /* Floating glass pill (~48px) + 12px lift above the screen edge */
-    --bottom-nav-h: 3.75rem;
   }
 
   html, body {

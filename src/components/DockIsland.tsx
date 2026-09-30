@@ -2,6 +2,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springFast, springSnappy, tx, useAppReducedMotion } from './motion';
+import CoverImg from './CoverImg';
 import { TabType } from '../types';
 
 const tabs: { id: TabType; label: string; icon: string }[] = [
@@ -85,13 +86,14 @@ export default function DockIsland() {
                 {/* Mini Book Art & Track info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 flex-shrink-0 ring-1 ring-white/10">
-                    <img
+                    <CoverImg
                       className="w-full h-full object-cover"
                       alt={currentBook.title}
                       src={currentBook.coverUrl}
+                      iconClassName="text-[18px]"
                     />
                   </div>
-                  <AnimatePresence mode="wait" initial={false}>
+                  <AnimatePresence mode="popLayout" initial={false}>
                     <motion.div
                       key={currentBook.id}
                       initial={{ opacity: 0, y: reduced ? 0 : 4 }}
@@ -208,7 +210,7 @@ export default function DockIsland() {
                     )}
                   </AnimatePresence>
                   {showPlayingDot && !isActive && (
-                    <span className="absolute top-0 right-2 w-1.5 h-1.5 rounded-full bg-[#ffb86b] animate-pulse" />
+                    <span className="absolute top-0 right-2 w-1.5 h-1.5 rounded-full bg-[#ffb86b] animate-pulse motion-reduce:animate-none" />
                   )}
                 </span>
               </motion.button>

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springGentle, staggerDelay, tx, useAppReducedMotion, useIntroPlayed } from './motion';
+import CoverImg from './CoverImg';
 
 export default function BookmarksView() {
   const { bookmarks, removeBookmark, jumpToBookmark } = useAudio();
@@ -51,7 +52,7 @@ export default function BookmarksView() {
                 onClick={() => handleJumpToBookmark(bm.bookId, bm.timestampSeconds, bm.chapterNumber)}
                 className="w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-black/40 shadow cursor-pointer group relative"
               >
-                <img className="w-full h-full object-cover" alt={bm.bookTitle} src={bm.bookCover} />
+                <CoverImg className="w-full h-full object-cover" alt={bm.bookTitle} src={bm.bookCover} iconClassName="text-[22px]" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-[#ffb86b]/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="material-symbols-outlined text-[20px] text-white">play_arrow</span>
                 </div>

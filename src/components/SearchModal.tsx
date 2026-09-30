@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
+import CoverImg from './CoverImg';
 
 export default function SearchModal() {
   const { isSearchModalOpen, setIsSearchModalOpen, books, selectBook } = useAudio();
@@ -44,7 +45,11 @@ export default function SearchModal() {
         <div className="p-3 border-b border-white/[0.06] flex items-center gap-2">
           <span className="material-symbols-outlined text-white/40 text-[20px] mr-1">search</span>
           <input
-            autoFocus
+            ref={(el) => {
+              // Autofocus only with a fine pointer (desktop): on phones it
+              // pops the keyboard on open and jumps the layout.
+              if (el && window.matchMedia?.('(pointer: fine)').matches) el.focus();
+            }}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -95,10 +100,11 @@ export default function SearchModal() {
                   }}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#ffb86b]/[0.07] transition-colors cursor-pointer"
                 >
-                  <img
+                  <CoverImg
                     src={book.coverUrl}
                     alt={book.title}
                     className="w-10 h-14 object-cover rounded-md flex-shrink-0"
+                    iconClassName="text-[16px]"
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-[14px] font-medium text-white truncate">{book.title}</h4>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
+import { FALLBACK_COVER } from './CoverImg';
 
 export default function PlayerView() {
   const {
@@ -268,6 +269,13 @@ export default function PlayerView() {
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
                   draggable={false}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.fb) {
+                      img.dataset.fb = '1';
+                      img.src = FALLBACK_COVER;
+                    }
+                  }}
                 />
               </AnimatePresence>
             </motion.div>
