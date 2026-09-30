@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, tx, useAppReducedMotion } from './motion';
+import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 export default function SearchModal() {
   const { isSearchModalOpen, setIsSearchModalOpen, books, selectBook } = useAudio();
@@ -83,14 +83,17 @@ export default function SearchModal() {
                 {query.trim() ? `נמצאו ${results.length} תוצאות` : 'חיפושים בספרייה:'}
               </span>
 
-              {results.map((book) => (
-                <div
+              {results.map((book, i) => (
+                <motion.div
                   key={book.id}
+                  initial={{ opacity: 0, y: reduced ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={tx(reduced, { ...springGentle, delay: staggerDelay(i, 0.035, 0.2) })}
                   onClick={() => {
                     selectBook(book.id, true, true);
                     setIsSearchModalOpen(false);
                   }}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.05] transition-colors cursor-pointer"
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#ffb86b]/[0.07] transition-colors cursor-pointer"
                 >
                   <img
                     src={book.coverUrl}
@@ -104,7 +107,7 @@ export default function SearchModal() {
                   <span className="material-symbols-outlined text-[18px] text-white/40">
                     arrow_back_ios
                   </span>
-                </div>
+                </motion.div>
               ))}
             </>
           )}

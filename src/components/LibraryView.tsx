@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { pressTap, springSnappy, tx, useAppReducedMotion } from './motion';
+import { pressTap, springGentle, springSnappy, staggerDelay, tx, useAppReducedMotion, useIntroPlayed } from './motion';
 
 
 export default function LibraryView() {
@@ -32,6 +32,9 @@ export default function LibraryView() {
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success'>('idle');
   const [pendingDeleteBookId, setPendingDeleteBookId] = useState<string | null>(null);
   const reduced = useAppReducedMotion();
+  // Entrance choreography plays once — revisits render instantly so the tab
+  // doesn't blink twice (container fade + staggered list wave).
+  const intro = useIntroPlayed('library');
 
   const pendingDeleteBook = pendingDeleteBookId
     ? books.find((b) => b.id === pendingDeleteBookId) ?? null
@@ -110,7 +113,12 @@ export default function LibraryView() {
   return (
     <main className="flex-1 w-full page-with-dock px-5 max-w-xl mx-auto flex flex-col gap-6 pt-5">
       {/* Title & Real Statistics Summary */}
-      <div className="flex flex-col gap-1">
+      <motion.div
+        initial={intro ? { opacity: 0, y: reduced ? 0 : 10 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={tx(reduced, springGentle)}
+        className="flex flex-col gap-1"
+      >
         <div className="flex items-center justify-between">
           <h1 className="text-[28px] font-semibold tracking-tight text-white">הספרייה שלי</h1>
         </div>
@@ -119,7 +127,7 @@ export default function LibraryView() {
           <span className="inline-block w-1 h-1 rounded-full bg-white/20" />
           <span>{books.length > 0 ? `${storageFormatted} שמורים אופליין` : '0MB שמורים אופליין'}</span>
         </p>
-      </div>
+      </motion.div>
 
       {/* Quiet Integrated Quick-Import Field */}
       <div className="glass-static relative flex items-center rounded-2xl p-1.5 pr-3.5 focus-within:!border-[#ffb86b]/40 transition-colors overflow-hidden">
@@ -213,8 +221,14 @@ export default function LibraryView() {
             </span>
           </div>
 
-          <div className="glass-static relative overflow-hidden rounded-2xl p-4 hover:border-white/[0.14] transition-colors flex flex-col gap-4">
+          <motion.div
+            initial={intro ? { opacity: 0, y: reduced ? 0 : 14 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={tx(reduced, springGentle)}
+            className="glass-static relative overflow-hidden rounded-2xl p-4 hover:border-[#ffb86b]/25 hover:shadow-[0_16px_48px_-12px_rgb(255_184_107/0.25)] transition-all duration-300 flex flex-col gap-4"
+          >
             <div className="glass-glint" />
+            <div className="pointer-events-none absolute -top-20 -end-20 w-56 h-56 rounded-full bg-[#ffb86b]/[0.07] blur-3xl" aria-hidden="true" />
             <div
               className="flex items-start gap-4 cursor-pointer"
               onClick={() => setActiveTab('player')}
@@ -257,7 +271,7 @@ export default function LibraryView() {
             <div className="flex flex-col gap-1.5" dir="ltr">
               <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden relative">
                 <div
-                  className="bg-[#ffb86b] h-full rounded-full transition-all duration-300"
+                  className="progress-shimmer bg-gradient-to-l from-[#ffb86b] to-[#ffc685] h-full rounded-full transition-all duration-300"
                   style={{ width: `${currentBookProgressPercent}%` }}
                 />
               </div>
@@ -307,7 +321,7 @@ export default function LibraryView() {
                 <span className="material-symbols-outlined text-[19px]">delete</span>
               </button>
             </div>
-          </div>
+          </motion.div>
         </section>
       ) : (
         <section className="glass-static rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
@@ -336,7 +350,7 @@ export default function LibraryView() {
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {filteredBooks.map((book) => {
+            {filteredBooks.map((book, i) => {
               const isSelected = currentBook?.id === book.id;
 
               const isDone = book.category === 'completed';
@@ -345,9 +359,13 @@ export default function LibraryView() {
                 <motion.div
                   key={book.id}
                   onClick={() => selectBook(book.id, true, false)}
+                  initial={intro ? { opacity: 0, y: reduced ? 0 : 14 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={tx(reduced, { ...springGentle, delay: intro ? staggerDelay(i) : 0 })}
                   whileTap={reduced ? undefined : pressTap}
-                  className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-white/[0.14] transition-colors cursor-pointer ${isDone ? 'opacity-85' : ''
-                    } ${isSelected ? '!border-[#ffb86b]/40' : ''}`}
+                  whileHover={reduced ? undefined : { y: -2 }}
+                  className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-[#ffb86b]/25 hover:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.6)] transition-all duration-300 cursor-pointer ${isDone ? 'opacity-85' : ''
+                    } ${isSelected ? '!border-[#ffb86b]/40 shadow-[0_12px_32px_-12px_rgb(255_184_107/0.3)]' : ''}`}
                 >
                   {/* Thumbnail — shared-element source for the player cover morph */}
                   <motion.div
@@ -445,7 +463,7 @@ export default function LibraryView() {
             <span className="text-[11px] text-white/45">
               {sleepTimerSecondsRemaining
                 ? `כיבוי בעוד ${Math.ceil(sleepTimerSecondsRemaining / 60)} דקות`
-                : 'כיבוי בסיום הפרק הנוכחי'}
+                : 'כבוי — ללא טיימר פעיל'}
             </span>
           </div>
         </div>
@@ -458,12 +476,21 @@ export default function LibraryView() {
       </div>
 
       {/* Delete confirmation */}
+      <AnimatePresence>
       {pendingDeleteBookId && (
-        <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={tx(reduced, springSnappy)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
           onClick={() => setPendingDeleteBookId(null)}
         >
-          <div
+          <motion.div
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+            transition={tx(reduced, springSnappy)}
             className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
             dir="rtl"
             onClick={(e) => e.stopPropagation()}
@@ -496,9 +523,10 @@ export default function LibraryView() {
                 <span>מחק</span>
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </main>
   );
 }

@@ -47,8 +47,9 @@ export default function AccountModal() {
         </div>
 
         {/* User Card */}
-        <div className="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.04]">
-          <div className="w-12 h-12 rounded-full bg-[#ffb86b] text-[#2c1700] flex items-center justify-center font-bold text-[18px]">
+        <div className="relative overflow-hidden flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.04]">
+          <div className="pointer-events-none absolute -top-10 -end-10 w-32 h-32 rounded-full bg-[#ffb86b]/15 blur-2xl" aria-hidden="true" />
+          <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#ffc685] to-[#e89838] text-[#2c1700] flex items-center justify-center font-bold text-[18px] shadow-[0_4px_16px_rgba(232,152,56,0.4)]">
             מ
           </div>
           <div className="flex flex-col">

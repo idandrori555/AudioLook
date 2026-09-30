@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, tx, useAppReducedMotion } from './motion';
+import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 export default function SleepTimerModal() {
   const {
@@ -18,7 +18,7 @@ export default function SleepTimerModal() {
     { label: '25 דקות', minutes: 25 },
     { label: '45 דקות', minutes: 45 },
     { label: '60 דקות (שעה)', minutes: 60 },
-    { label: 'בסיום הפרק הנוכחי', minutes: 35 },
+    { label: '35 דקות', minutes: 35 },
   ];
 
   return (
@@ -67,25 +67,29 @@ export default function SleepTimerModal() {
         )}
 
         <div className="flex flex-col gap-2">
-          {presets.map((preset) => {
+          {presets.map((preset, i) => {
             const isSelected = sleepTimerMinutes === preset.minutes;
 
             return (
-              <button
+              <motion.button
                 key={preset.label}
+                initial={{ opacity: 0, y: reduced ? 0 : 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={tx(reduced, { ...springGentle, delay: staggerDelay(i, 0.04, 0.2) })}
+                whileTap={reduced ? undefined : { scale: 0.98 }}
                 onClick={() => {
                   setSleepTimer(preset.minutes);
                   setIsSleepTimerModalOpen(false);
                 }}
                 className={`flex items-center justify-between p-3 rounded-xl border text-[14px] font-medium transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#ffb86b] text-[#2c1700] border-[#ffb86b] font-semibold'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/90 border-white/[0.04]'
+                    ? 'bg-[#ffb86b] text-[#2c1700] border-[#ffb86b] font-semibold shadow-[0_8px_24px_-8px_rgb(255_184_107/0.5)]'
+                    : 'bg-white/[0.04] hover:bg-[#ffb86b]/10 hover:border-[#ffb86b]/25 text-white/90 border-white/[0.04]'
                 }`}
               >
                 <span>{preset.label}</span>
                 {isSelected && <span className="material-symbols-outlined text-[18px]">check</span>}
-              </button>
+              </motion.button>
             );
           })}
 

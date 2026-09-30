@@ -25,6 +25,16 @@
     font-family: 'Rubik', sans-serif;
   }
 
+  ::selection {
+    background: rgb(255 184 107 / 0.35);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(255 184 107 / 0.7);
+    outline-offset: 2px;
+  }
+
   body {
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -83,6 +93,113 @@
   top: 0;
   height: 1px;
   background: linear-gradient(to left, transparent, rgb(255 255 255 / 0.5), transparent);
+}
+
+/* Ambient aurora backdrop — two slow-drifting color orbs + film grain.
+   Rendered once in App; pure decoration, never intercepts touches. */
+.ambient-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  will-change: transform;
+}
+.ambient-orb-a {
+  width: 55vmax;
+  height: 55vmax;
+  top: -18vmax;
+  inset-inline-start: -12vmax;
+  background: radial-gradient(circle, rgb(255 184 107 / 0.13), transparent 65%);
+  animation: ambient-drift-a 22s ease-in-out infinite alternate;
+}
+.ambient-orb-b {
+  width: 50vmax;
+  height: 50vmax;
+  bottom: -16vmax;
+  inset-inline-end: -10vmax;
+  background: radial-gradient(circle, rgb(139 124 255 / 0.11), transparent 65%);
+  animation: ambient-drift-b 26s ease-in-out infinite alternate;
+}
+.ambient-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+@keyframes ambient-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+@keyframes ambient-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.08); }
+  to { transform: translate3d(-5vmax, -4vmax, 0) scale(1); }
+}
+
+/* Breathing glow for the now-playing cover aura. */
+@keyframes cover-aura {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.06); }
+}
+.cover-aura-playing {
+  animation: cover-aura 4.5s ease-in-out infinite;
+}
+
+/* Pulsing halo behind the play button while audio runs. */
+@keyframes play-halo {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.12); }
+}
+.play-halo {
+  animation: play-halo 2.8s ease-in-out infinite;
+}
+
+/* Tiny live equalizer bars (drawer + player pill). */
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+/* Shimmer sweep for progress fills. */
+.progress-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to left,
+    transparent,
+    rgb(255 255 255 / 0.35),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: shimmer-sweep 2.6s ease-in-out infinite;
+}
+@keyframes shimmer-sweep {
+  55%, 100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb-a,
+  .ambient-orb-b,
+  .cover-aura-playing,
+  .play-halo,
+  .eq-bar,
+  .progress-shimmer::after {
+    animation: none;
+  }
 }
 
 /* Material symbol styling helper */

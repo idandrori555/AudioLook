@@ -1,5 +1,7 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springGentle, tx, useAppReducedMotion, useIntroPlayed } from './motion';
 
 export default function SettingsView() {
   const {
@@ -14,6 +16,15 @@ export default function SettingsView() {
   const totalMB = books.length * 85;
   const storageFormatted = totalMB >= 1000 ? `${(totalMB / 1024).toFixed(1)}GB` : `${totalMB}MB`;
 
+  const reduced = useAppReducedMotion();
+  const intro = useIntroPlayed('settings');
+
+  const sectionAnim = (i: number) => ({
+    initial: (intro ? { opacity: 0, y: reduced ? 0 : 14 } : false) as false | { opacity: number; y: number },
+    animate: { opacity: 1, y: 0 },
+    transition: tx(reduced, { ...springGentle, delay: intro ? i * 0.07 : 0 }),
+  });
+
   const handleClearCache = () => {
     showToast(`זיכרון מטמון נוקה (${storageFormatted} פונו)`);
   };
@@ -26,7 +37,7 @@ export default function SettingsView() {
       </div>
 
       {/* Audio Playback Preferences */}
-      <section className="glass-static rounded-2xl p-4 flex flex-col gap-4">
+      <motion.section {...sectionAnim(0)} className="glass-static rounded-2xl p-4 flex flex-col gap-4 hover:border-[#ffb86b]/20 transition-colors duration-300">
         <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">tune</span>
           <span>נגינה ושמע</span>
@@ -62,11 +73,15 @@ export default function SettingsView() {
           </div>
           <button
             onClick={() => setAudioSoundEnabled(!audioSoundEnabled)}
-            className={`w-12 h-7 rounded-full p-1 transition-colors cursor-pointer flex items-center ${audioSoundEnabled ? 'bg-[#ffb86b] justify-end' : 'bg-white/10 justify-start'
+            role="switch"
+            aria-checked={audioSoundEnabled}
+            className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 cursor-pointer flex items-center ${audioSoundEnabled ? 'bg-[#ffb86b] justify-end shadow-[0_0_16px_rgba(255,184,107,0.4)]' : 'bg-white/10 justify-start'
               }`}
           >
-            <div
-              className={`w-5 h-5 rounded-full ${audioSoundEnabled ? 'bg-[#2c1700]' : 'bg-white/60'
+            <motion.div
+              layout
+              transition={tx(reduced, springGentle)}
+              className={`w-5 h-5 rounded-full shadow ${audioSoundEnabled ? 'bg-[#2c1700]' : 'bg-white/60'
                 }`}
             />
           </button>
@@ -81,10 +96,10 @@ export default function SettingsView() {
             10s / 10s
           </span>
         </div>
-      </section>
+      </motion.section>
 
       {/* Storage and Downloads */}
-      <section className="glass-static rounded-2xl p-4 flex flex-col gap-4">
+      <motion.section {...sectionAnim(1)} className="glass-static rounded-2xl p-4 flex flex-col gap-4 hover:border-[#ffb86b]/20 transition-colors duration-300">
         <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">cloud_download</span>
           <span>אחסון והורדות אופליין</span>
@@ -116,7 +131,7 @@ export default function SettingsView() {
             גבוהה
           </span>
         </div>
-      </section>
+      </motion.section>
 
     </main>
   );

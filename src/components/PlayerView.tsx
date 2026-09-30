@@ -242,13 +242,18 @@ export default function PlayerView() {
           ) : (
             /* Standard or Audio-only Cover Artwork — shared-element target
                for the library-thumbnail → player morph */
+            <div className="relative">
+              <div
+                aria-hidden="true"
+                className={`absolute -inset-8 rounded-[2rem] bg-[#ffb86b]/20 blur-3xl pointer-events-none ${isPlaying && !reduced ? 'cover-aura-playing' : 'opacity-40'}`}
+              />
             <motion.div
               layoutId={`cover-${currentBook.id}`}
               transition={tx(reduced, springSnappy)}
               initial={reduced ? false : { scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               whileTap={reduced ? undefined : { scale: 0.98 }}
-              className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-[#18191c]"
+              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] border bg-[#18191c] transition-colors duration-500 ${isPlaying ? 'border-[#ffb86b]/30' : 'border-white/[0.08]'}`}
             >
               <AnimatePresence initial={false} custom={tossDir}>
                 <motion.img
@@ -266,6 +271,7 @@ export default function PlayerView() {
                 />
               </AnimatePresence>
             </motion.div>
+            </div>
           )}
         </div>
 
@@ -278,8 +284,15 @@ export default function PlayerView() {
           {currentChapter && (
             <button
               onClick={() => setIsChaptersDrawerOpen(true)}
-              className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-[13px] text-[#ffb86b]/95 font-medium transition-colors cursor-pointer overflow-hidden"
+              className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full bg-white/[0.04] hover:bg-[#ffb86b]/10 ring-1 ring-transparent hover:ring-[#ffb86b]/25 text-[13px] text-[#ffb86b]/95 font-medium transition-all cursor-pointer overflow-hidden"
             >
+              {isPlaying && !reduced && (
+                <span className="flex items-end gap-[2px] h-3 flex-shrink-0" aria-hidden="true">
+                  <span className="eq-bar w-[2.5px] rounded-full bg-[#ffb86b] h-3" style={{ animationDelay: '0ms' }} />
+                  <span className="eq-bar w-[2.5px] rounded-full bg-[#ffb86b] h-3" style={{ animationDelay: '180ms' }} />
+                  <span className="eq-bar w-[2.5px] rounded-full bg-[#ffb86b] h-3" style={{ animationDelay: '360ms' }} />
+                </span>
+              )}
               <AnimatePresence initial={false} mode="wait" custom={tossDir}>
                 <motion.span
                   key={chapterKey}
@@ -313,7 +326,7 @@ export default function PlayerView() {
             <div className="w-full h-[5px] rounded-full bg-white/10 overflow-hidden relative">
               {/* Active Progress Bar (LTR left-to-right) */}
               <div
-                className="h-full bg-[#e89838] rounded-full"
+                className="h-full bg-gradient-to-r from-[#e89838] to-[#ffc685] rounded-full shadow-[0_0_12px_rgba(232,152,56,0.6)]"
                 id="progress-fill"
                 style={{ width: `${displayPercent}%` }}
               />
@@ -397,10 +410,14 @@ export default function PlayerView() {
           <motion.button
             onClick={playPause}
             whileTap={reduced ? undefined : { scale: 0.92 }}
+            whileHover={reduced ? undefined : { scale: 1.04 }}
             aria-label="נגן או השהה"
-            className="w-16 h-16 min-[380px]:w-[72px] min-[380px]:h-[72px] shrink-0 rounded-full bg-[#e89838] text-[#2c1700] flex items-center justify-center shadow-[0_8px_24px_rgba(232,152,56,0.3)] hover:brightness-105 transition-all cursor-pointer"
+            className={`relative isolate w-16 h-16 min-[380px]:w-[72px] min-[380px]:h-[72px] shrink-0 rounded-full bg-gradient-to-b from-[#ffc685] to-[#e89838] text-[#2c1700] flex items-center justify-center hover:brightness-105 transition-all cursor-pointer ${isPlaying ? 'shadow-[0_8px_36px_rgba(232,152,56,0.5)]' : 'shadow-[0_8px_24px_rgba(232,152,56,0.3)]'}`}
             id="main-play-btn"
           >
+            {isPlaying && !reduced && (
+              <span aria-hidden="true" className="play-halo pointer-events-none absolute -inset-1.5 rounded-full bg-[#e89838]/40 blur-md -z-10" />
+            )}
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
                 key={isPlaying ? 'pause' : 'play'}
@@ -492,18 +509,26 @@ export default function PlayerView() {
               </span>
             </button>
 
+            {/* Tap-anywhere backdrop to dismiss (transparent, no animation needed) */}
+            {isSpeedMenuOpen && (
+              <button
+                aria-label="סגור תפריט מהירות"
+                onClick={() => setIsSpeedMenuOpen(false)}
+                className="fixed inset-0 z-20 cursor-default bg-transparent"
+              />
+            )}
             {/* Floating Speed Menu */}
             <AnimatePresence>
             {isSpeedMenuOpen && (
-              <motion.div
-                key="speed-menu"
-                initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 4 }}
-                transition={tx(reduced, springSnappy)}
-                className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px] origin-bottom"
-                id="speed-menu"
-              >
+                <motion.div
+                  key="speed-menu"
+                  initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 4 }}
+                  transition={tx(reduced, springSnappy)}
+                  className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px] origin-bottom"
+                  id="speed-menu"
+                >
                 {speedOptions.map((speed) => (
                   <button
                     key={speed}
@@ -519,7 +544,7 @@ export default function PlayerView() {
                     {speed}x
                   </button>
                 ))}
-              </motion.div>
+                </motion.div>
             )}
             </AnimatePresence>
           </div>

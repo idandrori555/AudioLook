@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { pressTap, springFast, springSnappy, tx, useAppReducedMotion } from './motion';
+import { springFast, springSnappy, tx, useAppReducedMotion } from './motion';
 import { TabType } from '../types';
 
 const tabs: { id: TabType; label: string; icon: string }[] = [
@@ -62,7 +62,7 @@ export default function DockIsland() {
               transition={tx(reduced, { duration: 0.18 })}
               className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06] pointer-events-none z-10"
             >
-              <div className="h-full bg-[#ffb86b]" style={{ width: `${progressPercent}%` }} />
+              <div className="h-full bg-gradient-to-l from-[#ffc685] to-[#ffb86b] shadow-[0_0_8px_rgba(255,184,107,0.8)]" style={{ width: `${progressPercent}%` }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -131,8 +131,11 @@ export default function DockIsland() {
                     onClick={playPause}
                     whileTap={reduced ? undefined : { scale: 0.88 }}
                     aria-label={isPlaying ? 'השהה' : 'נגן'}
-                    className="w-10 h-10 rounded-full bg-[#e89838] hover:bg-[#ffb86b] text-[#2c1700] flex items-center justify-center shadow-md shadow-[#e89838]/20 transition-colors cursor-pointer"
+                    className={`relative isolate w-10 h-10 rounded-full bg-gradient-to-b from-[#ffc685] to-[#e89838] hover:brightness-105 text-[#2c1700] flex items-center justify-center transition-all cursor-pointer ${isPlaying ? 'shadow-[0_0_20px_rgba(232,152,56,0.55)]' : 'shadow-md shadow-[#e89838]/20'}`}
                   >
+                    {isPlaying && !reduced && (
+                      <span aria-hidden="true" className="play-halo pointer-events-none absolute -inset-1 rounded-full bg-[#e89838]/40 blur-[6px] -z-10" />
+                    )}
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.span
                         key={isPlaying ? 'pause' : 'play'}

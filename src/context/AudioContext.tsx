@@ -498,6 +498,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Latest books snapshot for stable callbacks (avoids recreating
+  // markBookCompleted on every progress save, which would restart the
+  // YT poller interval every ~1.5s while playing).
+  const booksRef = useRef<Book[]>(books);
+  useEffect(() => {
+    booksRef.current = books;
+  }, [books]);
+
   const markBookCompleted = useCallback((bookId: string) => {
     setBooks((prev) => {
       const target = prev.find((b) => b.id === bookId);
@@ -517,10 +525,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setIsPlaying(false);
     saveProgressNow();
     if (currentBookIdRef.current === bookId) {
-      const doneBook = books.find((b) => b.id === bookId);
+      const doneBook = booksRef.current.find((b) => b.id === bookId);
       showToast(doneBook ? `סיימת את "${doneBook.title}"!` : 'סיימת את הספר!');
     }
-  }, [books, saveProgressNow, showToast]);
+  }, [saveProgressNow, showToast]);
 
   // Push current position to the OS (lock-screen scrubber, earphones, car BT).
   // Browsers throw on invalid values (no metadata yet, duration 0) — safe to ignore.
@@ -1103,7 +1111,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     currentChapterIndexRef.current = chapterIdx;
     currentTimeRef.current = displayTime;
     setCurrentTime(displayTime);
-    if (target.totalDurationSeconds) setDuration(target.totalDurationSeconds);
+    setDuration(target.totalDurationSeconds || 0);
 
     try {
       localStorage.setItem('audiolook_last_book_id', bookId);

@@ -20,7 +20,14 @@ function AppContent() {
   const reduced = useAppReducedMotion();
 
   return (
-    <div className="min-h-dvh bg-[#121316] text-[#edeef2] flex flex-col font-sans select-none" dir="rtl">
+    <div className="min-h-dvh bg-[#121316] text-[#edeef2] flex flex-col font-sans select-none isolate" dir="rtl">
+      {/* Ambient aurora backdrop — pure decoration */}
+      <div className="ambient-stage" aria-hidden="true">
+        <div className="ambient-orb ambient-orb-a" />
+        <div className="ambient-orb ambient-orb-b" />
+        <div className="ambient-grain" />
+      </div>
+
       {/* Show header for library, bookmarks, settings tabs */}
       {activeTab !== 'player' && <Header />}
 
@@ -33,7 +40,7 @@ function AppContent() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: reduced ? 0 : -8 }}
           transition={tx(reduced, { duration: fadeDuration })}
-          className="flex-1 flex flex-col min-w-0"
+          className="flex-1 flex flex-col min-w-0 relative z-10"
         >
           {activeTab === 'library' && <LibraryView />}
           {activeTab === 'player' && <PlayerView />}

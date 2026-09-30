@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import type { Transition } from 'motion/react';
 
@@ -20,8 +21,42 @@ export const springSnappy: Transition = {
 
 export const fadeDuration = 0.16;
 
+// Soft, floaty entrance for cards and hero blocks.
+export const springGentle: Transition = {
+  type: 'spring',
+  stiffness: 260,
+  damping: 28,
+  mass: 0.8,
+};
+
+// Playful pop for badges, dots and small celebratory bits.
+export const springBouncy: Transition = {
+  type: 'spring',
+  stiffness: 550,
+  damping: 16,
+  mass: 0.55,
+};
+
 // Press feedback shared by all tappable rows/cards/buttons.
 export const pressTap = { scale: 0.97 } as const;
+
+// Stagger helper — cap per-index delay so long lists still feel instant.
+export function staggerDelay(index: number, step = 0.045, max = 0.35): number {
+  return Math.min(index * step, max);
+}
+
+// Tab views unmount/remount on every tab switch (AnimatePresence keyed by
+// tab). Replaying the full entrance choreography on each revisit reads as a
+// "double blink": container fade first, then the staggered list wave after.
+// Gate entrances to the first mount per view so revisits appear instantly.
+const introPlayedKeys = new Set<string>();
+export function useIntroPlayed(key: string): boolean {
+  const [intro] = useState(() => !introPlayedKeys.has(key));
+  useEffect(() => {
+    introPlayedKeys.add(key);
+  }, [key]);
+  return intro;
+}
 
 // Wrapper around motion's hook so callers don't deal with `null`.
 export function useAppReducedMotion(): boolean {

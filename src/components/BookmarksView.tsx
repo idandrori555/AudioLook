@@ -1,8 +1,12 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
+import { springGentle, staggerDelay, tx, useAppReducedMotion, useIntroPlayed } from './motion';
 
 export default function BookmarksView() {
   const { bookmarks, removeBookmark, jumpToBookmark } = useAudio();
+  const reduced = useAppReducedMotion();
+  const intro = useIntroPlayed('bookmarks');
 
   const handleJumpToBookmark = (bookId: string, timestampSeconds: number, chapterNumber?: number) => {
     // Single atomic jump (book + chapter + time in one YT load). The previous
@@ -35,10 +39,13 @@ export default function BookmarksView() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {bookmarks.map((bm) => (
-            <div
+          {bookmarks.map((bm, i) => (
+            <motion.div
               key={bm.id}
-              className="glass-static rounded-2xl p-3.5 flex items-start gap-3.5 hover:border-white/[0.14] transition-colors"
+              initial={intro ? { opacity: 0, y: reduced ? 0 : 14 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={tx(reduced, { ...springGentle, delay: intro ? staggerDelay(i) : 0 })}
+              className="glass-static rounded-2xl p-3.5 flex items-start gap-3.5 hover:border-[#ffb86b]/25 hover:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.6)] transition-all duration-300"
             >
               <div
                 onClick={() => handleJumpToBookmark(bm.bookId, bm.timestampSeconds, bm.chapterNumber)}
@@ -92,7 +99,7 @@ export default function BookmarksView() {
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

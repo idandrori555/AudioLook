@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, tx, useAppReducedMotion } from './motion';
+import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 export default function ChaptersDrawer() {
   const {
@@ -74,16 +74,19 @@ export default function ChaptersDrawer() {
               const isCurrent = index === currentBook.currentChapterIndex;
 
               return (
-                <div
+                <motion.div
                   key={chapter.id}
+                  initial={{ opacity: 0, x: reduced ? 0 : 18 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={tx(reduced, { ...springGentle, delay: staggerDelay(index, 0.03, 0.3) })}
                   onClick={() => {
                     selectChapter(index);
                     setIsChaptersDrawerOpen(false);
                   }}
-                  className={`glass-static p-3.5 rounded-xl transition-colors cursor-pointer flex items-center justify-between gap-3 ${
+                  className={`glass-static p-3.5 rounded-xl transition-all duration-300 cursor-pointer flex items-center justify-between gap-3 hover:-translate-y-px ${
                     isCurrent
-                      ? '!border-[#ffb86b]/40 text-[#ffb86b]'
-                      : 'text-white/90 hover:border-white/[0.14]'
+                      ? '!border-[#ffb86b]/40 text-[#ffb86b] shadow-[0_8px_24px_-8px_rgb(255_184_107/0.35)]'
+                      : 'text-white/90 hover:border-[#ffb86b]/20'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -111,11 +114,11 @@ export default function ChaptersDrawer() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {isCurrent && isPlaying ? (
-                      <div className="flex items-end gap-0.5 h-4">
-                        <span className="w-1 bg-[#ffb86b] rounded-full animate-[bounce_0.6s_infinite_100ms] h-3" />
-                        <span className="w-1 bg-[#ffb86b] rounded-full animate-[bounce_0.6s_infinite_200ms] h-4" />
-                        <span className="w-1 bg-[#ffb86b] rounded-full animate-[bounce_0.6s_infinite_300ms] h-2" />
+                    {isCurrent && isPlaying && !reduced ? (
+                      <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
+                        <span className="eq-bar w-1 rounded-full bg-[#ffb86b] h-4" style={{ animationDelay: '0ms' }} />
+                        <span className="eq-bar w-1 rounded-full bg-[#ffb86b] h-4" style={{ animationDelay: '200ms' }} />
+                        <span className="eq-bar w-1 rounded-full bg-[#ffb86b] h-4" style={{ animationDelay: '400ms' }} />
                       </div>
                     ) : (
                       <span className="material-symbols-outlined text-[18px] text-white/40">
@@ -123,7 +126,7 @@ export default function ChaptersDrawer() {
                       </span>
                     )}
                   </div>
-                </div>
+                </motion.div>
               );
             })
           )}
