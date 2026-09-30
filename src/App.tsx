@@ -3,8 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { AudioProvider, useAudio } from './context/AudioContext';
 import { fadeDuration, tx, useAppReducedMotion } from './components/motion';
 import Header from './components/Header';
-import BottomNav from './components/BottomNav';
-import MiniPlayer from './components/MiniPlayer';
+import DockIsland from './components/DockIsland';
 import LibraryView from './components/LibraryView';
 import PlayerView from './components/PlayerView';
 import BookmarksView from './components/BookmarksView';
@@ -43,11 +42,8 @@ function AppContent() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Mini Player docked above navigation */}
-      <MiniPlayer />
-
-      {/* Bottom Navigation */}
-      <BottomNav />
+      {/* United floating island: mini-player + bottom nav */}
+      <DockIsland />
 
       {/* Global Modals & Drawers */}
       <ChaptersDrawer />

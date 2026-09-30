@@ -37,15 +37,10 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Fixed bars must clear the OS gesture/home area.
-     BottomNav height = h-16 + safe-area, so MiniPlayer sits above both. */
-  .mini-player-dock {
-    bottom: calc(var(--bottom-nav-h, 4rem) + var(--sab, env(safe-area-inset-bottom, 0px)));
-  }
-
-  /* Scroll content must clear MiniPlayer + floating nav + safe-area. */
+  /* United floating island clears the OS gesture/home area.
+     Collapsed (nav only) ≈ 3.75rem; expanded (mini + nav) ≈ 8.25rem. */
   .page-with-dock {
-    padding-bottom: calc(8rem + var(--sab, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(9.5rem + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
   .page-with-nav {
     padding-bottom: calc(5rem + var(--sab, env(safe-area-inset-bottom, 0px)));
