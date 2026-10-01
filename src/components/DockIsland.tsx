@@ -42,7 +42,6 @@ export default function DockIsland() {
   return (
     <div className="fixed inset-x-0 bottom-[calc(0.75rem+var(--sab,env(safe-area-inset-bottom,0px)))] z-50 flex justify-center px-4 pointer-events-none">
       <motion.div
-        layout
         initial={{ opacity: 0, y: reduced ? 0 : 48 }}
         animate={{ opacity: 1, y: 0 }}
         transition={tx(reduced, springFast)}
@@ -76,7 +75,7 @@ export default function DockIsland() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={tx(reduced, springFast)}
+              transition={tx(reduced, { duration: 0.2 })}
               className="overflow-hidden"
             >
               <div

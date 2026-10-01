@@ -143,9 +143,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   });
 
   const setActiveTab = (tab: TabType) => {
+    if (tab === activeTab) return;
     setActiveTabState(tab);
     try {
       localStorage.setItem('audiolook_active_tab', tab);
+    } catch {}
+    // Reset viewport scroll so the incoming tab mounts at the top.
+    // Without this, window.scrollY carries over between tabs of very
+    // different heights (short player <-> tall library): the document
+    // briefly collapses during the AnimatePresence exit gap, the browser
+    // clamps scrollY, and the fixed dock visibly jumps on re-mount.
+    try {
+      window.scrollTo(0, 0);
     } catch {}
   };
 
