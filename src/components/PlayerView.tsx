@@ -30,6 +30,8 @@ export default function PlayerView() {
     formatRemainingTime,
     isVideoMode,
     toggleVideoMode,
+    ytBlocked,
+    ytError,
   } = useAudio();
 
   const [isSpeedMenuOpen, setIsSpeedMenuOpen] = useState(false);
@@ -407,6 +409,25 @@ export default function PlayerView() {
             </button>
           )}
         </div>
+
+        {/* Player failure banner — replaces silent dead-00:00 states
+            (embed-blocked/deleted video, or blocked YT API) with an explanation */}
+        {(ytBlocked || (ytError && currentBook && ytError.bookId === currentBook.id)) && (
+          <div
+            dir="rtl"
+            className="w-full mb-4 flex items-start gap-2.5 px-3.5 py-3 rounded-2xl bg-red-500/[0.08] ring-1 ring-red-400/25 text-[13px] leading-relaxed text-red-200/90"
+            role="alert"
+          >
+            <span className="material-symbols-outlined text-[18px] text-red-300/90 flex-shrink-0 mt-px">
+              {ytBlocked ? 'wifi_off' : 'smart_display'}
+            </span>
+            <span>
+              {ytBlocked
+                ? 'נגן יוטיוב לא נטען — בדקו חיבור לרשת או חוסם פרסומות, וטענו מחדש.'
+                : ytError?.message}
+            </span>
+          </div>
+        )}
 
         {/* Refined Minimalist Scrubber & Timestamps */}
         <div className="w-full px-1 mb-5" dir="ltr">

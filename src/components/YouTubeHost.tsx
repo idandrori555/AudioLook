@@ -17,6 +17,9 @@ export default function YouTubeHost() {
     isVideoMode,
     nextChapter,
     markBookCompleted,
+    reportYtError,
+    clearYtError,
+    reportYtApiBlocked,
   } = useAudio();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -102,9 +105,14 @@ export default function YouTubeHost() {
     };
   }, [activeTab, isVideoMode, currentBook?.youtubeId]);
 
-  // Initialize YT Player once the API is loaded
+  // Initialize YT Player once the API is loaded.
+  // Gives up after YT_API_TIMEOUT_MS (ad-blocker/offline) instead of
+  // retrying forever — a never-ready player otherwise yields a dead 00:00
+  // slider with a lying play button and zero feedback.
+  const YT_API_TIMEOUT_MS = 10000;
   useEffect(() => {
     let checkInterval: NodeJS.Timeout | null = null;
+    const startedAt = Date.now();
 
     const initPlayer = () => {
       if (playerInstanceRef.current || !containerRef.current) return;
@@ -145,7 +153,10 @@ export default function YouTubeHost() {
               // 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING
               // Use refs so the handler never goes stale across book changes.
               // Fires once per finish: advance mid-playlist, complete at the end.
-              if (event.data === 0) {
+              if (event.data === 1) {
+                // Healthy playback clears any previous error banner.
+                clearYtError();
+              } else if (event.data === 0) {
                 const end = endStateRef.current;
                 if (end.isPlaylist && !end.isLastChapter) {
                   nextChapterRef.current();
@@ -156,6 +167,15 @@ export default function YouTubeHost() {
             },
             onError: (err: any) => {
               console.warn('YouTube Player encountered an issue:', err);
+              // Surface to the user: embed-blocked / deleted / private videos
+              // otherwise sit at a dead 00:00 with no explanation.
+              const code =
+                typeof err?.data === 'number'
+                  ? err.data
+                  : typeof err === 'number'
+                    ? err
+                    : -1;
+              reportYtError(code);
             },
           },
         });
@@ -172,6 +192,9 @@ export default function YouTubeHost() {
         if (window.YT && window.YT.Player) {
           initPlayer();
           if (checkInterval) clearInterval(checkInterval);
+        } else if (Date.now() - startedAt > YT_API_TIMEOUT_MS) {
+          if (checkInterval) clearInterval(checkInterval);
+          reportYtApiBlocked();
         }
       }, 400);
     }
@@ -181,8 +204,9 @@ export default function YouTubeHost() {
     };
     // NOTE: intentionally omit isPlaying/nextChapter/currentBook — the player is a
     // singleton; re-running init on playback toggles caused re-init checks + glitches.
+    // reportYtError/clearYtError/reportYtApiBlocked are stable callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setYtPlayer, setIsYtReady]);
+  }, [setYtPlayer, setIsYtReady, reportYtError, clearYtError, reportYtApiBlocked]);
 
   const shouldDisplayInSlot =
     activeTab === 'player' && isVideoMode && Boolean(currentBook?.youtubeId) && slotRect;

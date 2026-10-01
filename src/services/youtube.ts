@@ -161,7 +161,9 @@ export async function fetchYouTubePlaylist(playlistId: string): Promise<YouTubeP
         id: `yt-pl-${playlistId}-1`,
         number: 1,
         title: 'פרק 1: פלייליסט יוטיוב',
-        duration: 0,
+        // Keep consistent with the total estimate below (was 0 while the
+        // book total claimed 1800, so the chapter scrubber read 0:00).
+        duration: 1800,
         durationFormatted: 'פרק וידאו',
       },
     ],

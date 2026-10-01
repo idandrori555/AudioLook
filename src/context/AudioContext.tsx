@@ -39,6 +39,13 @@ interface AudioContextType {
   setYtPlayer: (player: any) => void;
   isYtReady: boolean;
   setIsYtReady: (ready: boolean) => void;
+  // Failure surfacing: without these, an unplayable video / blocked YT API
+  // leaves a dead 00:00 slider with a lying play button and zero feedback.
+  ytBlocked: boolean;
+  reportYtApiBlocked: () => void;
+  ytError: { bookId: string | null; code: number; message: string } | null;
+  reportYtError: (code: number) => void;
+  clearYtError: () => void;
   
   // Handlers
   playPause: () => void;
@@ -116,7 +123,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const chIdx = currentBook.currentChapterIndex || 0;
     return currentBook.chapterProgress?.[chIdx] ?? currentBook.currentTimeSeconds ?? 0;
   });
-  const [duration, setDuration] = useState<number>(() => currentBook?.totalDurationSeconds || 0);
+  // Live `duration` semantics: for YT playlists the player scrubs/seeks
+  // WITHIN the current video, so duration = current chapter length.
+  // For everything else (single videos, local books) it = whole-book total.
+  const [duration, setDuration] = useState<number>(() => {
+    if (!currentBook) return 0;
+    if (currentBook.isPlaylist) {
+      const idx = currentBook.currentChapterIndex || 0;
+      return currentBook.chapters?.[idx]?.duration || 0;
+    }
+    return currentBook.totalDurationSeconds || 0;
+  });
 
   const [playbackSpeed, setPlaybackSpeedState] = useState<number>(() => {
     try {
@@ -163,6 +180,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // YouTube player reference & state
   const [ytPlayer, setYtPlayer] = useState<any>(null);
   const [isYtReady, setIsYtReady] = useState(false);
+  // True once we give up waiting for the YT IFrame API (ad-blocker/offline).
+  // While true, play on YT books must NOT fake a "playing" state.
+  const [ytBlocked, setYtBlocked] = useState(false);
+  // Last player error for the current book (embed-blocked/deleted/...).
+  const [ytError, setYtError] = useState<{
+    bookId: string | null;
+    code: number;
+    message: string;
+  } | null>(null);
   // Default is cover-audio mode (האזנה). The _v2 key retires the old default
   // (video) so every install picks up audio-first once, then remembers choice.
   const VIDEO_MODE_KEY = 'audiolook_video_mode_v2';
@@ -432,7 +458,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       setCurrentTime(resumeTime);
       currentTimeRef.current = resumeTime;
       currentChapterIndexRef.current = chIdx;
-      setDuration(currentBook.totalDurationSeconds || 0);
+      // Chapter-level duration for playlists (per-video scrubber), book total otherwise.
+      setDuration(
+        currentBook.isPlaylist
+          ? currentBook.chapters?.[chIdx]?.duration || 0
+          : currentBook.totalDurationSeconds || 0,
+      );
 
       const videoToCue =
         (currentBook.isPlaylist && currentBook.chapters?.[chIdx]?.youtubeId) ||
@@ -506,6 +537,42 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+
+  // YT IFrame API gave up loading (blocked/offline): stop pretending and say so.
+  const reportYtApiBlocked = useCallback(() => {
+    setYtBlocked(true);
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    showToast('נגן יוטיוב לא נטען — בדקו חיבור לרשת או חוסם פרסומות');
+  }, [showToast]);
+
+  const clearYtError = useCallback(() => {
+    setYtError(null);
+  }, []);
+
+  // A video failed inside the YT player (embed-blocked/deleted/private/...).
+  // Pause truthfully + explain — previously this was a console.warn only,
+  // leaving a dead 00:00 slider with a lying play button.
+  const reportYtError = useCallback(
+    (code: number) => {
+      const message =
+        code === 100
+          ? 'הסרטון לא נמצא או פרטי — ייתכן שנמחק מיוטיוב'
+          : code === 101 || code === 150
+            ? 'הסרטון חסום להטמעה — נסו לצפות בו ישירות ביוטיוב'
+            : code === 5
+              ? 'שגיאת נגן יוטיוב — נסו שוב בעוד רגע'
+              : code === 2
+                ? 'בקשה לא תקינה לנגן — נסו שוב'
+                : 'נגן יוטיוב נתקל בשגיאה';
+      setYtError({ bookId: currentBookIdRef.current, code, message });
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      saveProgressNow();
+      showToast(message);
+    },
+    [showToast, saveProgressNow],
+  );
 
   // Latest books snapshot for stable callbacks (avoids recreating
   // markBookCompleted on every progress save, which would restart the
@@ -622,7 +689,43 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           if (typeof ytPlayer.getDuration === 'function') {
             const ytDur = ytPlayer.getDuration();
             if (typeof ytDur === 'number' && ytDur > 0 && ytDur !== duration) {
-              setDuration(Math.floor(ytDur));
+              const learned = Math.floor(ytDur);
+              setDuration(learned);
+              // Persist the ground-truth video length back into the book so
+              // import-time guesses (1800s fallbacks, 3600s single placeholder,
+              // 0s XML unknowns) self-heal instead of living forever.
+              const liveBookId = currentBookIdRef.current;
+              const liveIdx = currentChapterIndexRef.current ?? 0;
+              const stored = booksRef.current.find((b) => b.id === liveBookId);
+              if (stored) {
+                const isPlChapter =
+                  stored.isPlaylist && stored.chapters?.[liveIdx] !== undefined;
+                const storedDur = isPlChapter
+                  ? stored.chapters[liveIdx].duration || 0
+                  : stored.totalDurationSeconds || 0;
+                if (Math.abs(storedDur - learned) >= 2) {
+                  setBooks((prev) =>
+                    prev.map((b) => {
+                      if (b.id !== liveBookId) return b;
+                      if (b.isPlaylist && b.chapters?.[liveIdx]) {
+                        const chapters = b.chapters.map((c, i) =>
+                          i === liveIdx ? { ...c, duration: learned } : c,
+                        );
+                        return {
+                          ...b,
+                          chapters,
+                          totalChapters: chapters.length,
+                          totalDurationSeconds: chapters.reduce(
+                            (s, c) => s + (c.duration || 0),
+                            0,
+                          ),
+                        };
+                      }
+                      return { ...b, totalDurationSeconds: learned };
+                    }),
+                  );
+                }
+              }
             }
           }
           syncMediaPositionState();
@@ -720,6 +823,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (now - playToggleLockRef.current < 400) return;
     playToggleLockRef.current = now;
 
+    // Dead zone: YT book but no usable player because the API is blocked.
+    // The old fallback flipped a local "playing" flag with no sound and no
+    // advancing clock — a frozen 00:00 that looks exactly like this bug.
+    if (currentBook.youtubeId && (!ytPlayer || !isYtReady) && ytBlocked) {
+      reportYtApiBlocked();
+      return;
+    }
+
     if (currentBook.youtubeId && ytPlayer && isYtReady) {
       try {
         // Prefer local intent over getPlayerState (which lags during buffering)
@@ -744,7 +855,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
-  }, [currentBook, ytPlayer, isYtReady, saveProgressNow]);
+  }, [currentBook, ytPlayer, isYtReady, saveProgressNow, ytBlocked, reportYtApiBlocked]);
 
   const seekTo = useCallback((seconds: number) => {
     if (!currentBook) return;
@@ -796,6 +907,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (index >= 0 && index < currentBook.chapters.length) {
       // 1. Save progress of current chapter before leaving
       saveProgressNow();
+      // New video intent — drop any previous player error banner.
+      clearYtError();
 
       const targetChapter = currentBook.chapters[index];
       // 2. Restore saved timestamp in the target chapter (or 0)
@@ -807,6 +920,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       pendingSeekTargetRef.current = null;
       seekPendingUntilRef.current = Date.now() + 600;
       setCurrentTime(resumeTime);
+      // Swap the scrubber to the new chapter's length immediately — otherwise
+      // the previous chapter's duration lingers until the YT poller corrects
+      // it (same "wrong chapter time" flash as on fresh import).
+      if (targetChapter.youtubeId) {
+        setDuration(targetChapter.duration || 0);
+      }
 
       setBooks((prev) => {
         const nextBooks = prev.map((b) => {
@@ -969,6 +1088,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const selectBook = (bookId: string, autoPlay = true, navigateToPlayer = true) => {
     // 1. Save progress in the outgoing book
     saveProgressNow();
+    // New video intent — drop any previous player error banner.
+    clearYtError();
 
     const rawTarget = books.find((b) => b.id === bookId);
     if (!rawTarget) return;
@@ -996,7 +1117,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     currentTimeRef.current = resumeTime;
 
     setCurrentTime(resumeTime);
-    setDuration(target.totalDurationSeconds || 0);
+    setDuration(
+      target.isPlaylist
+        ? target.chapters?.[resumeChapterIndex]?.duration || 0
+        : target.totalDurationSeconds || 0,
+    );
 
     try {
       localStorage.setItem('audiolook_last_book_id', bookId);
@@ -1068,6 +1193,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     // Save outgoing position first (no-op if same book, harmless).
     saveProgressNow();
+    // New video intent — drop any previous player error banner.
+    clearYtError();
 
     // Revive completed books as listening, but keep the bookmark position
     // (unlike selectBook which restarts completed books from 0).
@@ -1120,7 +1247,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     currentChapterIndexRef.current = chapterIdx;
     currentTimeRef.current = displayTime;
     setCurrentTime(displayTime);
-    setDuration(target.totalDurationSeconds || 0);
+    setDuration(
+      target.isPlaylist
+        ? target.chapters?.[chapterIdx]?.duration || 0
+        : target.totalDurationSeconds || 0,
+    );
 
     try {
       localStorage.setItem('audiolook_last_book_id', bookId);
@@ -1207,16 +1338,39 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setBooks((prev) => [newBook, ...prev]);
     setCurrentBookId(newBook.id);
     setCurrentTime(0);
+    // Keep refs in sync synchronously — state updates are async and a
+    // progress save / poller tick before the sync effect runs would
+    // otherwise attribute position to the previous book / chapter index.
+    currentBookIdRef.current = newBook.id;
+    currentChapterIndexRef.current = 0;
     currentTimeRef.current = 0;
-    setDuration(newBook.totalDurationSeconds);
+    pendingSeekTargetRef.current = null;
+    // Chapter-level duration for fresh playlists (per-video scrubber),
+    // book total otherwise — never show the whole-book sum as one chapter.
+    setDuration(
+      newBook.isPlaylist
+        ? newBook.chapters?.[0]?.duration || 0
+        : newBook.totalDurationSeconds,
+    );
     // New books always start PAUSED — cue without autoplaying so the UI
     // (and lock-screen) indicator correctly shows the paused state.
     setIsPlaying(false);
+    isPlayingRef.current = false;
+    pendingAutoPlayRef.current = null;
+    clearYtError();
     showToast(`"${newBook.title}" נוסף בהצלחה!`);
 
     if (newBook.youtubeId && ytPlayer && isYtReady) {
       try {
         ytPlayer.cueVideoById(newBook.youtubeId, 0);
+        // Record the handshake so the [currentBook?.id] sync effect skips
+        // its redundant second cue for this exact switch.
+        lastYtSwitchRef.current = {
+          bookId: newBook.id,
+          videoId: newBook.youtubeId,
+          start: 0,
+          at: Date.now(),
+        };
       } catch (e) {
         console.warn('YT cue error:', e);
       }
@@ -1434,6 +1588,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         setYtPlayer,
         isYtReady,
         setIsYtReady,
+        ytBlocked,
+        reportYtApiBlocked,
+        ytError,
+        reportYtError,
+        clearYtError,
         playPause,
         seekTo,
         jumpRelative,
