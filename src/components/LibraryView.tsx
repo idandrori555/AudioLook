@@ -70,10 +70,7 @@ export default function LibraryView() {
   const completedCount = books.filter((b) => b.category === 'completed').length;
   const queuedCount = books.filter((b) => b.category === 'queued').length;
 
-  // Real stats
-  const totalHoursListened = Math.round(
-    books.reduce((acc, b) => acc + (b.currentTimeSeconds / 3600), 0) * 10
-  ) / 10;
+  // (Removed: cumulative listened-time stat — summing live positions isn't real listening history.)
 
   // Book-level hero stats. For playlists, the live player position/duration
   // only cover the CURRENT video — so elapsed/total are accumulated across
@@ -118,8 +115,6 @@ export default function LibraryView() {
           <h1 className="text-[28px] font-semibold tracking-tight text-white">הספרייה שלי</h1>
         </div>
         <p className="text-[13px] text-[#9a9da6] flex items-center gap-2">
-          <span>{totalHoursListened} שעות האזנה</span>
-          <span className="inline-block w-1 h-1 rounded-full bg-white/20" />
           <span>{books.length} פריטים בספרייה</span>
         </p>
       </motion.div>

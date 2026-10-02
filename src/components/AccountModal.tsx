@@ -7,7 +7,6 @@ export default function AccountModal() {
   const { isAccountModalOpen, setIsAccountModalOpen, books } = useAudio();
   const reduced = useAppReducedMotion();
 
-  const totalMinutes = Math.round(books.reduce((acc, b) => acc + b.currentTimeSeconds / 60, 0));
   const completedCount = books.filter((b) => b.category === 'completed').length;
 
   return (
@@ -58,15 +57,9 @@ export default function AccountModal() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
-            <span className="text-[20px] font-bold text-white block">{totalMinutes}</span>
-            <span className="text-[11px] text-[#9a9da6]">דקות האזנה</span>
-          </div>
-          <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
-            <span className="text-[20px] font-bold text-[#ffb86b] block">{completedCount}</span>
-            <span className="text-[11px] text-[#9a9da6]">ספרים שהושלמו</span>
-          </div>
+        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.04] text-center">
+          <span className="text-[20px] font-bold text-[#ffb86b] block">{completedCount}</span>
+          <span className="text-[11px] text-[#9a9da6]">ספרים שהושלמו</span>
         </div>
 
         <button
