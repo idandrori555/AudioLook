@@ -18,7 +18,6 @@ export default function SleepTimerModal() {
     { label: '25 דקות', minutes: 25 },
     { label: '45 דקות', minutes: 45 },
     { label: '60 דקות (שעה)', minutes: 60 },
-    { label: '35 דקות', minutes: 35 },
   ];
 
   return (
