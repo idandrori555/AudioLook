@@ -1,5 +1,5 @@
-# AudioLook — bun multi-stage image.
-# Build:  docker build -t audiolook .
+# Lyra — bun multi-stage image.
+# Build:  docker build -t lyra .
 # Run:    docker compose up -d   (recommended: restart policy + optional tunnel)
 
 # ---------- build stage: compile the SPA ----------

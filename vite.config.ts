@@ -116,8 +116,8 @@ export default defineConfig(() => {
           ],
         },
         manifest: {
-          name: 'AudioLook — אודיולוק',
-          short_name: 'AudioLook',
+          name: 'Lyra — לירה',
+          short_name: 'Lyra',
           description:
             'אפליקציית ספרי שמע מעוצבת בהשראת Apple Books עם ספרייה אישית, נגן מתקדם, ייבוא תכנים, סימניות וטיימר שינה',
           lang: 'he',

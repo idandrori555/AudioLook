@@ -12,6 +12,32 @@ import {
   fetchYouTubePlaylist,
 } from '../services/youtube';
 
+// Rebrand migration (AudioLook → Lyra): copy legacy `audiolook_*` localStorage
+// values to their `lyra_*` equivalents on first run, so existing installs keep
+// their library, bookmarks and settings. Afterwards this is a no-op — safe to
+// delete once all installs have migrated.
+const LEGACY_STORAGE_KEYS: Array<[oldKey: string, newKey: string]> = [
+  ['audiolook_user_books_clean', 'lyra_user_books_clean'],
+  ['audiolook_last_book_id', 'lyra_last_book_id'],
+  ['audiolook_playback_speed', 'lyra_playback_speed'],
+  ['audiolook_active_tab', 'lyra_active_tab'],
+  ['audiolook_video_mode_v2', 'lyra_video_mode_v2'],
+  ['audiolook_user_bookmarks_clean', 'lyra_user_bookmarks_clean'],
+  ['audiolook_sound_enabled', 'lyra_sound_enabled'],
+];
+function migrateLegacyStorageKeys(): void {
+  try {
+    for (const [oldKey, newKey] of LEGACY_STORAGE_KEYS) {
+      if (localStorage.getItem(newKey) === null) {
+        const legacy = localStorage.getItem(oldKey);
+        if (legacy !== null) localStorage.setItem(newKey, legacy);
+      }
+    }
+  } catch {
+    // Storage unavailable (private mode etc.) — app boots with defaults.
+  }
+}
+
 interface AudioContextType {
   books: Book[];
   currentBook: Book | null;
@@ -79,10 +105,11 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
+  migrateLegacyStorageKeys();
   const [books, setBooks] = useState<Book[]>(() => {
     try {
       localStorage.removeItem('audiolook_books');
-      const saved = localStorage.getItem('audiolook_user_books_clean');
+      const saved = localStorage.getItem('lyra_user_books_clean');
       if (!saved) return INITIAL_BOOKS;
       const parsed: Book[] = JSON.parse(saved);
       return parsed.map((b) => {
@@ -102,7 +129,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const [currentBookId, setCurrentBookId] = useState<string | null>(() => {
     try {
-      const savedId = localStorage.getItem('audiolook_last_book_id');
+      const savedId = localStorage.getItem('lyra_last_book_id');
       if (savedId && books.some((b) => b.id === savedId)) {
         return savedId;
       }
@@ -137,7 +164,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const [playbackSpeed, setPlaybackSpeedState] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('audiolook_playback_speed');
+      const saved = localStorage.getItem('lyra_playback_speed');
       if (saved) {
         const val = parseFloat(saved);
         if (!isNaN(val) && val > 0) return val;
@@ -151,7 +178,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const [activeTab, setActiveTabState] = useState<TabType>(() => {
     try {
-      const saved = localStorage.getItem('audiolook_active_tab') as TabType;
+      const saved = localStorage.getItem('lyra_active_tab') as TabType;
       if (saved && ['library', 'player', 'bookmarks', 'settings'].includes(saved)) {
         return saved;
       }
@@ -163,7 +190,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (tab === activeTab) return;
     setActiveTabState(tab);
     try {
-      localStorage.setItem('audiolook_active_tab', tab);
+      localStorage.setItem('lyra_active_tab', tab);
     } catch {}
     // Reset viewport scroll so the incoming tab mounts at the top.
     // Without this, window.scrollY carries over between tabs of very
@@ -191,7 +218,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   } | null>(null);
   // Default is cover-audio mode (האזנה). The _v2 key retires the old default
   // (video) so every install picks up audio-first once, then remembers choice.
-  const VIDEO_MODE_KEY = 'audiolook_video_mode_v2';
+  const VIDEO_MODE_KEY = 'lyra_video_mode_v2';
   const [isVideoMode, setIsVideoModeState] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(VIDEO_MODE_KEY);
@@ -220,7 +247,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(() => {
     try {
       localStorage.removeItem('audiolook_bookmarks');
-      const saved = localStorage.getItem('audiolook_user_bookmarks_clean');
+      const saved = localStorage.getItem('lyra_user_bookmarks_clean');
       return saved ? JSON.parse(saved) : INITIAL_BOOKMARKS;
     } catch {
       return INITIAL_BOOKMARKS;
@@ -233,7 +260,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [audioSoundEnabled, setAudioSoundEnabledState] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('audiolook_sound_enabled');
+      const saved = localStorage.getItem('lyra_sound_enabled');
       if (saved !== null) return saved === 'true';
     } catch {}
     return true;
@@ -242,7 +269,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const setAudioSoundEnabled = (enabled: boolean) => {
     setAudioSoundEnabledState(enabled);
     try {
-      localStorage.setItem('audiolook_sound_enabled', String(enabled));
+      localStorage.setItem('lyra_sound_enabled', String(enabled));
     } catch {}
   };
 
@@ -307,12 +334,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   // Persist user books on any book array changes
   useEffect(() => {
-    localStorage.setItem('audiolook_user_books_clean', JSON.stringify(books));
+    localStorage.setItem('lyra_user_books_clean', JSON.stringify(books));
   }, [books]);
 
   // Persist bookmarks
   useEffect(() => {
-    localStorage.setItem('audiolook_user_bookmarks_clean', JSON.stringify(bookmarks));
+    localStorage.setItem('lyra_user_bookmarks_clean', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
   // Direct progress saving function
@@ -350,8 +377,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
         if (changed) {
           try {
-            localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
-            localStorage.setItem('audiolook_last_book_id', bId);
+            localStorage.setItem('lyra_user_books_clean', JSON.stringify(updated));
+            localStorage.setItem('lyra_last_book_id', bId);
           } catch (e) {
             console.warn('Error saving to localStorage:', e);
           }
@@ -371,7 +398,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const chIdx = currentChapterIndexRef.current;
 
     try {
-      const raw = localStorage.getItem('audiolook_user_books_clean');
+      const raw = localStorage.getItem('lyra_user_books_clean');
       if (raw) {
         const storedBooks: Book[] = JSON.parse(raw);
         const updated = storedBooks.map((b) => {
@@ -387,9 +414,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             lastListenedAt: new Date().toISOString(),
           };
         });
-        localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
+        localStorage.setItem('lyra_user_books_clean', JSON.stringify(updated));
       }
-      localStorage.setItem('audiolook_last_book_id', bId);
+      localStorage.setItem('lyra_last_book_id', bId);
     } catch (e) {
       console.warn('Emergency flush error:', e);
     }
@@ -592,7 +619,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           : b,
       );
       try {
-        localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
+        localStorage.setItem('lyra_user_books_clean', JSON.stringify(updated));
       } catch (e) {
         console.warn('Failed to save completion:', e);
       }
@@ -943,8 +970,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           };
         });
         try {
-          localStorage.setItem('audiolook_user_books_clean', JSON.stringify(nextBooks));
-          localStorage.setItem('audiolook_last_book_id', currentBook.id);
+          localStorage.setItem('lyra_user_books_clean', JSON.stringify(nextBooks));
+          localStorage.setItem('lyra_last_book_id', currentBook.id);
         } catch (e) {
           console.warn('Failed to save to localStorage:', e);
         }
@@ -1124,7 +1151,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      localStorage.setItem('audiolook_last_book_id', bookId);
+      localStorage.setItem('lyra_last_book_id', bookId);
     } catch {}
 
     const videoToPlay =
@@ -1254,7 +1281,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      localStorage.setItem('audiolook_last_book_id', bookId);
+      localStorage.setItem('lyra_last_book_id', bookId);
     } catch {}
 
     pendingAutoPlayRef.current = true;
@@ -1284,7 +1311,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       }),
     );
     try {
-      const raw = localStorage.getItem('audiolook_user_books_clean');
+      const raw = localStorage.getItem('lyra_user_books_clean');
       if (raw) {
         const stored: Book[] = JSON.parse(raw);
         const updated = stored.map((b) => {
@@ -1302,7 +1329,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             lastListenedAt: new Date().toISOString(),
           };
         });
-        localStorage.setItem('audiolook_user_books_clean', JSON.stringify(updated));
+        localStorage.setItem('lyra_user_books_clean', JSON.stringify(updated));
       }
     } catch (e) {
       console.warn('Failed to save bookmark jump:', e);
@@ -1405,7 +1432,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const setPlaybackSpeed = (speed: number) => {
     setPlaybackSpeedState(speed);
     try {
-      localStorage.setItem('audiolook_playback_speed', speed.toString());
+      localStorage.setItem('lyra_playback_speed', speed.toString());
     } catch {}
     if (currentBook?.youtubeId && ytPlayer && isYtReady) {
       try {

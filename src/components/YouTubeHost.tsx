@@ -118,7 +118,7 @@ export default function YouTubeHost() {
       if (playerInstanceRef.current || !containerRef.current) return;
 
       try {
-        const player = new window.YT.Player('audiolook-yt-iframe-root', {
+        const player = new window.YT.Player('lyra-yt-iframe-root', {
           height: '100%',
           width: '100%',
           videoId: currentBookRef.current?.youtubeId || '',
@@ -242,7 +242,7 @@ export default function YouTubeHost() {
       }
       className="bg-black transition-opacity duration-200"
     >
-      <div id="audiolook-yt-iframe-root" className="w-full h-full" />
+      <div id="lyra-yt-iframe-root" className="w-full h-full" />
     </div>
   );
 }

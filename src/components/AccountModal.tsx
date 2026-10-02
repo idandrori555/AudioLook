@@ -53,7 +53,7 @@ export default function AccountModal() {
             מ
           </div>
           <div className="flex flex-col">
-            <span className="text-[15px] font-semibold text-white">משתמש אודיולוק</span>
+            <span className="text-[15px] font-semibold text-white">משתמש Lyra</span>
           </div>
         </div>
 

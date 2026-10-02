@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "react-example",
+      "name": "lyra",
       "dependencies": {
         "express": "^4.21.2",
       },

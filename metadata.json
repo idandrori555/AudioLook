@@ -1,5 +1,5 @@
 {
-  "name": "AudioLook - אודיולוק",
+  "name": "Lyra - לירה",
   "description": "אפליקציית ספרי שמע מעוצבת בהשראת Apple Books עם ספרייה אישית, נגן מתקדם, ייבוא תכנים, סימניות וטיימר שינה",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
