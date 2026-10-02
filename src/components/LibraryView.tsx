@@ -75,12 +75,6 @@ export default function LibraryView() {
     books.reduce((acc, b) => acc + (b.currentTimeSeconds / 3600), 0) * 10
   ) / 10;
 
-  const totalOfflineStorageMB = books.length * 85; // ~85MB average per saved track
-  const storageFormatted =
-    totalOfflineStorageMB >= 1000
-      ? `${(totalOfflineStorageMB / 1024).toFixed(1)}GB`
-      : `${totalOfflineStorageMB}MB`;
-
   // Book-level hero stats. For playlists, the live player position/duration
   // only cover the CURRENT video — so elapsed/total are accumulated across
   // all chapters instead (completed chapters count in full).
@@ -126,7 +120,7 @@ export default function LibraryView() {
         <p className="text-[13px] text-[#9a9da6] flex items-center gap-2">
           <span>{totalHoursListened} שעות האזנה</span>
           <span className="inline-block w-1 h-1 rounded-full bg-white/20" />
-          <span>{books.length > 0 ? `${storageFormatted} שמורים אופליין` : '0MB שמורים אופליין'}</span>
+          <span>{books.length} פריטים בספרייה</span>
         </p>
       </motion.div>
 
@@ -240,11 +234,6 @@ export default function LibraryView() {
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
                 />
-                {currentBook.isOfflineAvailable && (
-                  <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md rounded p-0.5 text-white/90">
-                    <span className="material-symbols-outlined text-[13px] block">offline_pin</span>
-                  </div>
-                )}
               </div>
 
               <div className="flex flex-col flex-1 min-w-0 justify-between py-0.5 h-28">

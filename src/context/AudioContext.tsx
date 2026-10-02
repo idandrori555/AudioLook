@@ -11,6 +11,8 @@ import {
   fetchYouTubeMetadata,
   fetchYouTubePlaylist,
 } from '../services/youtube';
+import { buildBackup, downloadBackup, mergeBookmarks, mergeBooks } from '../services/backup';
+import type { ImportMode, LyraBackup } from '../services/backup';
 
 // Rebrand migration (AudioLook → Lyra): copy legacy `audiolook_*` localStorage
 // values to their `lyra_*` equivalents on first run, so existing installs keep
@@ -90,6 +92,8 @@ interface AudioContextType {
   toggleBookmark: () => void;
   removeBookmark: (id: string) => void;
   importYouTubeAudio: (url: string) => Promise<boolean>;
+  exportLibrary: () => void;
+  applyBackup: (backup: LyraBackup, mode: ImportMode) => void;
   setActiveTab: (tab: TabType) => void;
   setActiveFilter: (filter: FilterType) => void;
   setIsChaptersDrawerOpen: (open: boolean) => void;
@@ -1520,8 +1524,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           currentChapterIndex: 0,
           totalDurationSeconds: totalDuration || 3600,
           currentTimeSeconds: 0,
-          isOfflineAvailable: true,
-          sizeOffline: `${Math.max(1, plData.chapters.length) * 35}MB`,
+          // Streamed from YouTube — requires connection, no true offline file.
+          isOfflineAvailable: false,
           chapters: plData.chapters,
         };
 
@@ -1562,14 +1566,56 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       currentChapterIndex: 0,
       totalDurationSeconds: initialDuration,
       currentTimeSeconds: 0,
-      isOfflineAvailable: true,
-      sizeOffline: '72MB',
+      // Streamed from YouTube — requires connection, no true offline file.
+      isOfflineAvailable: false,
       chapters: [],
     };
 
     addBook(newBook);
     setActiveTab('player');
     return true;
+  };
+
+  const exportLibrary = () => {
+    try {
+      const backup = buildBackup({
+        books,
+        bookmarks,
+        settings: { playbackSpeed, audioSoundEnabled },
+      });
+      downloadBackup(backup);
+      showToast(
+        books.length === 0 && bookmarks.length === 0
+          ? 'הספרייה ריקה — יוצא גיבוי ריק'
+          : `הגיבוי הורד: ${books.length} ספרים, ${bookmarks.length} סימניות`,
+      );
+    } catch {
+      showToast('ייצוא הגיבוי נכשל — נסו שוב');
+    }
+  };
+
+  const applyBackup = (backup: LyraBackup, mode: ImportMode) => {
+    if (mode === 'replace') {
+      setBooks(backup.books);
+      setBookmarks(backup.bookmarks);
+      if (!backup.books.some((b) => b.id === currentBookIdRef.current)) {
+        setCurrentBookId(backup.books.length > 0 ? backup.books[0].id : null);
+      }
+      showToast(`הספרייה הוחלפה: ${backup.books.length} ספרים, ${backup.bookmarks.length} סימניות`);
+    } else {
+      setBooks((prev) => mergeBooks(prev, backup.books));
+      setBookmarks((prev) => mergeBookmarks(prev, backup.bookmarks));
+      showToast(`הגיבוי מוזג: ${backup.books.length} ספרים, ${backup.bookmarks.length} סימניות`);
+    }
+    // Global prefs apply in both modes — no per-item conflict is possible.
+    setPlaybackSpeedState(backup.settings.playbackSpeed);
+    try {
+      localStorage.setItem('lyra_playback_speed', backup.settings.playbackSpeed.toString());
+    } catch {}
+    setAudioSoundEnabledState(backup.settings.audioSoundEnabled);
+    try {
+      localStorage.setItem('lyra_sound_enabled', String(backup.settings.audioSoundEnabled));
+    } catch {}
   };
 
   const formatTime = (totalSeconds: number): string => {
@@ -1636,6 +1682,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         toggleBookmark,
         removeBookmark,
         importYouTubeAudio,
+        exportLibrary,
+        applyBackup,
         setActiveTab,
         setActiveFilter,
         setIsChaptersDrawerOpen,
