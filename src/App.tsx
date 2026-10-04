@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AudioProvider, useAudio } from './context/AudioContext';
-import { fadeDuration, tx, useAppReducedMotion } from './components/motion';
+import { durFast, easeApple, tx, useAppReducedMotion } from './components/motion';
 import Header from './components/Header';
 import DockIsland from './components/DockIsland';
 import LibraryView from './components/LibraryView';
@@ -35,10 +35,10 @@ function AppContent() {
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: reduced ? 0 : 12 }}
+          initial={{ opacity: 0, y: reduced ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: reduced ? 0 : -8 }}
-          transition={tx(reduced, { duration: fadeDuration })}
+          exit={{ opacity: 0, y: reduced ? 0 : -6 }}
+          transition={tx(reduced, { type: 'tween', duration: durFast, ease: easeApple })}
           className="flex-1 flex flex-col min-w-0 relative z-10"
         >
           {activeTab === 'library' && <LibraryView />}

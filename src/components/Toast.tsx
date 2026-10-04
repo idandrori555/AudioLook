@@ -15,9 +15,9 @@ export default function Toast() {
         {toastMessage && (
           <motion.div
             key={toastMessage}
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: -18, scale: 0.94 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.96 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
             transition={tx(reduced, springSnappy)}
             className="glass relative overflow-hidden text-white !border-[#ffb86b]/30 rounded-2xl px-4 py-2 text-[13px] font-medium flex items-center gap-2 shadow-[0_8px_32px_rgba(255,184,107,0.2)]"
           >

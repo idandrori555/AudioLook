@@ -148,13 +148,16 @@
   animation: cover-aura 4.5s ease-in-out infinite;
 }
 
-/* Pulsing halo behind the play button while audio runs. */
+/* Pulsing halo behind the play button while audio runs.
+   Opacity-only (no scale on a blurred layer) so it stays on the compositor
+   and never forces a re-blur every frame. */
 @keyframes play-halo {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.65; transform: scale(1.12); }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 .play-halo {
   animation: play-halo 2.8s ease-in-out infinite;
+  will-change: opacity;
 }
 
 /* Chapter-row entrance: GPU-composited keyframe instead of per-row JS springs.
@@ -162,17 +165,19 @@
    on real phone GPUs, especially while the blurred drawer panel repaints.
    One shared keyframe with a per-row delay stays smooth. */
 .drawer-row-in {
-  animation: drawer-row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: drawer-row-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
 }
 @keyframes drawer-row-in {
-  from { opacity: 0; transform: translateX(14px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translate3d(10px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 /* Tiny live equalizer bars (drawer + player pill). */
 .eq-bar {
   transform-origin: bottom;
   animation: eq-bounce 0.9s ease-in-out infinite;
+  will-change: transform;
 }
 @keyframes eq-bounce {
   0%, 100% { transform: scaleY(0.35); }
@@ -196,6 +201,7 @@
   );
   transform: translateX(-100%);
   animation: shimmer-sweep 2.6s ease-in-out infinite;
+  will-change: transform;
 }
 @keyframes shimmer-sweep {
   55%, 100% { transform: translateX(100%); }

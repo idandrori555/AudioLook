@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
+import { easeApple, springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 const MAX_CUSTOM_MINUTES = 480;
 
@@ -66,9 +66,9 @@ export default function SleepTimerModal() {
         >
           <motion.div
             key="sleep-panel"
-            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 6 }}
             transition={tx(reduced, springFast)}
             className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
             dir="rtl"
@@ -167,7 +167,7 @@ export default function SleepTimerModal() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={tx(reduced, { duration: 0.22 })}
+                transition={tx(reduced, { type: 'tween', duration: 0.22, ease: easeApple })}
                 className="overflow-hidden"
               >
                 <div className="flex flex-col gap-2 pt-1">

@@ -2,46 +2,58 @@ import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import type { Transition } from 'motion/react';
 
-// Shared animation tokens — subtle & fast (Apple-like, 150–250ms feel).
-// Transform + opacity only; never animate layout-affecting props inside
-// the 500ms-ticking player subtree (re-render churn would jank springs).
+// Shared animation tokens — GPU-friendly tweens (transform + opacity only).
+//
+// Why tweens over springs: springs re-solve physics on the JS thread every
+// frame until they settle, and overshoot keeps repainting (blur/shadow-heavy
+// cards jank on phones, especially with the 500ms-ticking player subtree).
+// Short expo-out tweens settle in a fixed frame budget, feel Apple-smooth,
+// and cost a fraction of the CPU. Overshoot "pop" is faked with a gentle
+// back-ease cubic — no physics simulation needed.
+export const easeApple = [0.22, 1, 0.36, 1] as const;
+export const easePop = [0.34, 1.35, 0.64, 1] as const;
+
+export const durFast = 0.16;
+export const durSnappy = 0.18;
+export const durMed = 0.22;
+export const durGentle = 0.28;
+
+// General UI (drawers, backdrops, panels, dock).
 export const springFast: Transition = {
-  type: 'spring',
-  stiffness: 500,
-  damping: 35,
-  mass: 0.6,
+  type: 'tween',
+  duration: durMed,
+  ease: easeApple,
 };
 
+// Micro-interactions (icons, pills, taps).
 export const springSnappy: Transition = {
-  type: 'spring',
-  stiffness: 700,
-  damping: 32,
-  mass: 0.5,
+  type: 'tween',
+  duration: durSnappy,
+  ease: easeApple,
 };
 
 export const fadeDuration = 0.16;
 
-// Soft, floaty entrance for cards and hero blocks.
+// Soft entrance for cards and hero blocks.
 export const springGentle: Transition = {
-  type: 'spring',
-  stiffness: 260,
-  damping: 28,
-  mass: 0.8,
+  type: 'tween',
+  duration: durGentle,
+  ease: easeApple,
 };
 
-// Playful pop for badges, dots and small celebratory bits.
+// Pop for badges, dots and small celebratory bits (subtle overshoot, no spring).
 export const springBouncy: Transition = {
-  type: 'spring',
-  stiffness: 550,
-  damping: 16,
-  mass: 0.55,
+  type: 'tween',
+  duration: 0.3,
+  ease: easePop,
 };
 
 // Press feedback shared by all tappable rows/cards/buttons.
 export const pressTap = { scale: 0.97 } as const;
 
-// Stagger helper — cap per-index delay so long lists still feel instant.
-export function staggerDelay(index: number, step = 0.045, max = 0.35): number {
+// Stagger helper — tight + capped so lists feel instant, not wavy.
+// Only the first few rows stagger; the rest appear together (cheap + fast).
+export function staggerDelay(index: number, step = 0.03, max = 0.18): number {
   return Math.min(index * step, max);
 }
 

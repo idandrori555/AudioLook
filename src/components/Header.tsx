@@ -11,7 +11,7 @@ export default function Header() {
   return (
     <header className="sticky top-[calc(0.5rem+env(safe-area-inset-top,0px))] z-40 px-4 pt-safe">
       <motion.div
-        initial={{ opacity: 0, y: reduced ? 0 : -14 }}
+        initial={{ opacity: 0, y: reduced ? 0 : -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={tx(reduced, springGentle)}
         className="glass relative overflow-hidden rounded-2xl h-14 px-4 flex items-center justify-between max-w-xl mx-auto"

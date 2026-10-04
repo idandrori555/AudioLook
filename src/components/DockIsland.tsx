@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
-import { springFast, springSnappy, tx, useAppReducedMotion } from './motion';
+import { easeApple, springFast, springSnappy, tx, useAppReducedMotion } from './motion';
 import CoverImg from './CoverImg';
 import { TabType } from '../types';
 
@@ -59,7 +59,7 @@ export default function DockIsland() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={tx(reduced, { duration: 0.18 })}
+              transition={tx(reduced, { type: 'tween', duration: 0.18, ease: easeApple })}
               className="absolute top-0 inset-x-0 h-[2px] bg-white/[0.06] pointer-events-none z-10"
             >
               <div className="h-full bg-gradient-to-l from-[#ffc685] to-[#ffb86b] shadow-[0_0_8px_rgba(255,184,107,0.8)]" style={{ width: `${progressPercent}%` }} />
@@ -75,7 +75,7 @@ export default function DockIsland() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={tx(reduced, { duration: 0.2 })}
+              transition={tx(reduced, { type: 'tween', duration: 0.24, ease: easeApple })}
               className="overflow-hidden"
             >
               <div
@@ -137,12 +137,12 @@ export default function DockIsland() {
                     {isPlaying && !reduced && (
                       <span aria-hidden="true" className="play-halo pointer-events-none absolute -inset-1 rounded-full bg-[#e89838]/40 blur-[6px] -z-10" />
                     )}
-                    <AnimatePresence mode="wait" initial={false}>
+                    <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span
                         key={isPlaying ? 'pause' : 'play'}
-                        initial={{ opacity: 0, scale: reduced ? 1 : 0.6 }}
+                        initial={{ opacity: 0, scale: reduced ? 1 : 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: reduced ? 1 : 0.6 }}
+                        exit={{ opacity: 0, scale: reduced ? 1 : 0.8 }}
                         transition={tx(reduced, springFast)}
                         className="material-symbols-outlined text-[22px]"
                         style={{ fontVariationSettings: "'FILL' 1" }}
@@ -198,9 +198,9 @@ export default function DockIsland() {
                     {showBadge && (
                       <motion.span
                         key={bookmarks.length}
-                        initial={reduced ? false : { scale: 0.4, opacity: 0 }}
+                        initial={reduced ? false : { scale: 0.7, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.4, opacity: 0 }}
+                        exit={{ scale: 0.7, opacity: 0 }}
                         transition={tx(reduced, springSnappy)}
                         className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ffb86b] text-[#2c1700] text-[10px] font-bold flex items-center justify-center shadow-md shadow-black/40"
                       >

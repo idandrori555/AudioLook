@@ -348,7 +348,6 @@ export default function LibraryView() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={tx(reduced, { ...springGentle, delay: intro ? staggerDelay(i) : 0 })}
                   whileTap={reduced ? undefined : pressTap}
-                  whileHover={reduced ? undefined : { y: -2 }}
                   className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-[#ffb86b]/25 hover:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.6)] transition-all duration-300 cursor-pointer ${isDone ? 'opacity-85' : ''
                     } ${isSelected ? '!border-[#ffb86b]/40 shadow-[0_12px_32px_-12px_rgb(255_184_107/0.3)]' : ''}`}
                 >
@@ -471,9 +470,9 @@ export default function LibraryView() {
             onClick={() => setPendingDeleteBookId(null)}
           >
             <motion.div
-              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 16 }}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 10 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 6 }}
               transition={tx(reduced, springSnappy)}
               className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
               dir="rtl"

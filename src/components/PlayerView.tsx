@@ -317,13 +317,13 @@ export default function PlayerView() {
                   <span className="eq-bar w-[2.5px] rounded-full bg-[#ffb86b] h-3" style={{ animationDelay: '360ms' }} />
                 </span>
               )}
-              <AnimatePresence initial={false} mode="wait" custom={tossDir}>
+              <AnimatePresence initial={false} mode="popLayout" custom={tossDir}>
                 <motion.span
                   key={chapterKey}
                   custom={tossDir}
-                  initial={reduced ? { opacity: 0 } : { opacity: 0, x: tossDir * 48 }}
+                  initial={reduced ? { opacity: 0 } : { opacity: 0, x: tossDir * 14 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={reduced ? { opacity: 0 } : { opacity: 0, x: -tossDir * 48 }}
+                  exit={reduced ? { opacity: 0 } : { opacity: 0, x: -tossDir * 14 }}
                   transition={tx(reduced, springSnappy)}
                   className="truncate max-w-[280px]"
                 >
@@ -417,7 +417,7 @@ export default function PlayerView() {
           >
             <motion.span
               key={forwardNudge}
-              initial={reduced ? false : { rotate: 24, scale: 0.88 }}
+              initial={reduced ? false : { rotate: 12, scale: 0.94 }}
               animate={{ rotate: 0, scale: 1 }}
               transition={tx(reduced, springSnappy)}
               className="flex items-center justify-center"
@@ -461,12 +461,12 @@ export default function PlayerView() {
             {isPlaying && !reduced && (
               <span aria-hidden="true" className="play-halo pointer-events-none absolute -inset-1.5 rounded-full bg-[#e89838]/40 blur-md -z-10" />
             )}
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={isPlaying ? 'pause' : 'play'}
-                initial={reduced ? false : { scale: 0.6, opacity: 0 }}
+                initial={reduced ? false : { scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={reduced ? { opacity: 0 } : { scale: 0.6, opacity: 0 }}
+                exit={reduced ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
                 transition={tx(reduced, springSnappy)}
                 className="material-symbols-outlined text-[38px] flex items-center justify-center"
                 id="play-pause-icon"
@@ -489,7 +489,7 @@ export default function PlayerView() {
           >
             <motion.span
               key={replayNudge}
-              initial={reduced ? false : { rotate: -24, scale: 0.88 }}
+              initial={reduced ? false : { rotate: -12, scale: 0.94 }}
               animate={{ rotate: 0, scale: 1 }}
               transition={tx(reduced, springSnappy)}
               className="flex items-center justify-center"
@@ -565,9 +565,9 @@ export default function PlayerView() {
             {isSpeedMenuOpen && (
                 <motion.div
                   key="speed-menu"
-                  initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 6 }}
+                  initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 4 }}
+                  exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 3 }}
                   transition={tx(reduced, springSnappy)}
                   className="glass absolute bottom-11 right-1/2 translate-x-1/2 rounded-xl p-1.5 z-30 flex flex-col gap-1 min-w-[70px] origin-bottom"
                   id="speed-menu"
@@ -625,7 +625,7 @@ export default function PlayerView() {
           >
             <motion.span
               key={isCurrentlyBookmarked ? 'marked' : 'unmarked'}
-              initial={reduced ? false : { scale: 0.4 }}
+              initial={reduced ? false : { scale: 0.7 }}
               animate={{ scale: 1 }}
               transition={tx(reduced, springSnappy)}
               className={`material-symbols-outlined text-[18px] ${isCurrentlyBookmarked ? 'text-[#ffb86b]' : 'text-[#9d9ca4]'

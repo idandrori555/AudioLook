@@ -32,9 +32,9 @@ export default function SearchModal() {
       >
       <motion.div
         key="search-panel"
-        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.97 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={reduced ? { opacity: 0 } : { opacity: 0, y: -16, scale: 0.98 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
         transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md rounded-2xl flex flex-col max-h-[80vh] overflow-hidden"
         dir="rtl"

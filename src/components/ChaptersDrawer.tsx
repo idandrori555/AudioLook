@@ -33,9 +33,9 @@ export default function ChaptersDrawer() {
       >
       <motion.div
         key="chapters-panel"
-        initial={reduced ? { opacity: 0 } : { opacity: 0, x: -56 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, x: -32 }}
         animate={{ opacity: 1, x: 0 }}
-        exit={reduced ? { opacity: 0 } : { opacity: 0, x: -40 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, x: -24 }}
         transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md h-dvh flex flex-col !rounded-none !border-y-0 !border-l-0 pt-[env(safe-area-inset-top,0px)]"
         dir="rtl"
