@@ -168,29 +168,77 @@ export default function PlayerView() {
     currentBook.isPlaylist ||
       (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1),
   );
-  // Cover fling to switch chapters (no spring/enter-exit animation — the
-  // new cover appears instantly to avoid CPU strain). The frame only tilts
-  // lightly with the finger and eases back with a cheap tween.
+  // Free cover drag across the whole screen (no clipping, no constraints).
+  // Horizontal fling = chapter switch; anything else eases back to center.
+  // Transform-only (x/y/rotate) + short tweens so it stays smooth on CPU.
   const frameRotate = useMotionValue(0);
-  const settleFrame = () => {
-    animate(frameRotate, 0, { duration: 0.15, ease: 'easeOut' });
+  const cardX = useMotionValue(0);
+  const cardY = useMotionValue(0);
+  const [isCoverDragging, setIsCoverDragging] = useState(false);
+  const coverFlying = useRef(false);
+
+  // New book → snap card back to center instantly (motion values survive
+  // remount since key only swaps the img src, not the values).
+  const activeBookId = currentBook.id;
+  const prevBookIdRef = useRef(activeBookId);
+  if (prevBookIdRef.current !== activeBookId) {
+    prevBookIdRef.current = activeBookId;
+    cardX.set(0);
+    cardY.set(0);
+    frameRotate.set(0);
+  }
+
+  const settleCover = () => {
+    animate(frameRotate, 0, { duration: 0.18, ease: 'easeOut' });
+    animate(cardX, 0, { duration: 0.24, ease: [0.22, 1, 0.36, 1] });
+    animate(cardY, 0, { duration: 0.24, ease: [0.22, 1, 0.36, 1] });
   };
 
+  const flyAndSwitch = (dir: -1 | 1) => {
+    if (coverFlying.current) {
+      dir === -1 ? nextChapter() : previousChapter();
+      return;
+    }
+    coverFlying.current = true;
+    const w = typeof window !== 'undefined' ? window.innerWidth : 400;
+    // Whip off-screen in the fling direction, swap chapter mid-flight,
+    // then pop back from the opposite side — all cheap tweens, no springs.
+    animate(cardX, dir * Math.max(320, w * 0.7), {
+      duration: 0.16,
+      ease: 'easeIn',
+      onComplete: () => {
+        dir === -1 ? nextChapter() : previousChapter();
+        cardX.set(dir * -60);
+        cardY.set(0);
+        animate(cardX, 0, { duration: 0.26, ease: [0.22, 1, 0.36, 1] });
+        animate(frameRotate, 0, { duration: 0.2, ease: 'easeOut' });
+        coverFlying.current = false;
+      },
+    });
+  };
+
+  const handleCoverDragStart = () => {
+    if (!canSwitchChapters || coverFlying.current) return;
+    setIsCoverDragging(true);
+  };
   const handleCoverDrag = (_: unknown, info: PanInfo) => {
     if (!canSwitchChapters) return;
     frameRotate.set(Math.max(-14, Math.min(14, info.offset.x * 0.06)));
   };
   const handleCoverDragEnd = (_: unknown, info: PanInfo) => {
     if (!canSwitchChapters) return;
-    settleFrame();
+    setIsCoverDragging(false);
+    if (coverFlying.current) return;
     const { x: offsetX } = info.offset;
     const { x: velocityX } = info.velocity;
     // Screen pixels: fling left = next chapter, fling right = previous.
-    // Vertical movement is free play and snaps back via constraints.
+    // Free vertical play always eases back to center.
     if (offsetX <= -90 || velocityX <= -600) {
-      nextChapter();
+      flyAndSwitch(-1);
     } else if (offsetX >= 90 || velocityX >= 600) {
-      previousChapter();
+      flyAndSwitch(1);
+    } else {
+      settleCover();
     }
   };
 
@@ -266,23 +314,25 @@ export default function PlayerView() {
               <span className="text-[12px] text-white/40">טוען נגן וידאו מיוטיוב...</span>
             </div>
           ) : (
-            /* Standard or Audio-only Cover Artwork — static, no spring or
-               shared-element morph (removed for CPU/perf) */
+            /* Standard or Audio-only Cover Artwork — free full-screen drag,
+               never clipped (overflow-visible), no select spring */
             <div className="relative">
               <motion.div
                 style={{ rotate: frameRotate }}
-                className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden"
+                className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-visible"
               >
                 <motion.img
                   key={currentBook.id}
                   drag={canSwitchChapters ? true : false}
-                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                  dragElastic={0.55}
                   dragMomentum={false}
+                  style={{ x: cardX, y: cardY }}
+                  onDragStart={handleCoverDragStart}
                   onDrag={handleCoverDrag}
                   onDragEnd={handleCoverDragEnd}
-                  className="absolute inset-0 w-full h-full object-cover rounded-2xl touch-pan-y cursor-grab"
-                  title={canSwitchChapters ? 'גרור הצידה למעבר פרק' : undefined}
+                  whileDrag={{ scale: 1.04, cursor: 'grabbing' }}
+                  animate={isCoverDragging ? undefined : { scale: 1 }}
+                  className={`absolute inset-0 w-full h-full object-cover rounded-2xl cursor-grab shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] ${canSwitchChapters ? 'touch-none' : ''} ${isCoverDragging ? 'z-30' : 'z-0'}`}
+                  title={canSwitchChapters ? 'גרור לכל כיוון — שמאלה לפרק הבא, ימינה לקודם' : undefined}
                   alt={currentBook.title}
                   src={currentBook.coverUrl}
                   draggable={false}
