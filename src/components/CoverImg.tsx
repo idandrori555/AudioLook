@@ -7,8 +7,7 @@ interface CoverImgProps {
   iconClassName?: string;
 }
 
-// Inline SVG fallback for animated/shared-element images (e.g. the player
-// cover morph) where swapping components would break the layoutId transition.
+// Inline SVG fallback for cover images.
 export const FALLBACK_COVER =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%231d1e23'/%3E%3Ccircle cx='100' cy='100' r='44' fill='%23ffb86b' fill-opacity='0.25'/%3E%3Ccircle cx='100' cy='100' r='26' fill='%23ffb86b' fill-opacity='0.6'/%3E%3C/svg%3E";
 

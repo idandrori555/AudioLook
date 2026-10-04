@@ -31,8 +31,7 @@ function AppContent() {
       {/* Show header for library, bookmarks, settings tabs */}
       {activeTab !== 'player' && <Header />}
 
-      {/* Main Tab Screen — crossfade + subtle rise; also hosts the
-          library-cover → player-cover shared-element morph */}
+      {/* Main Tab Screen — crossfade + subtle rise */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}

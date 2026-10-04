@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { AnimatePresence, motion, useMotionValue, animate } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
@@ -43,17 +43,15 @@ export default function PlayerView() {
   const [dragSeekTime, setDragSeekTime] = useState<number | null>(null);
   const reduced = useAppReducedMotion();
 
-  // Chapter-toss direction: +1 = moved forward (next), -1 = moved back.
-  // Derived from the live index so every source (buttons, drawer, earphones,
-  // auto-advance) tosses the right way. Time flows left-to-right here (LTR
-  // scrubber), so "next" throws the old card off to the left like a page turn.
+  // Chapter-slide direction for the subtitle pill: +1 = moved forward,
+  // -1 = moved back. Derived from the live index so every source (buttons,
+  // drawer, earphones, auto-advance) slides the right way.
   const chapterIdx = currentBook?.currentChapterIndex ?? 0;
   const bookId = currentBook?.id ?? null;
   // Render-phase derivation (not an effect): AnimatePresence resolves exit/
-  // enter variants during the commit render, so the direction must already be
-  // fresh in that pass. Deriving it in useEffect updated tossDir one commit
-  // too late — the backward skip replayed the forward toss. React applies
-  // these setStates with an immediate re-render before committing (no flash).
+  // enter during the commit render, so the direction must already be fresh
+  // in that pass. React applies these setStates with an immediate re-render
+  // before committing (no flash).
   const [prevPos, setPrevPos] = useState<{ bookId: string | null; idx: number }>({ bookId, idx: chapterIdx });
   const [tossDir, setTossDir] = useState<1 | -1>(1);
   if (prevPos.bookId !== bookId || prevPos.idx !== chapterIdx) {
@@ -63,29 +61,6 @@ export default function PlayerView() {
     setPrevPos({ bookId, idx: chapterIdx });
   }
   const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
-
-  // Tinder-style card toss variants (custom = { dir, soft }).
-  // Slightly overshooting spring so chapter changes feel playful, not stiff.
-  // `soft` enters are for fling switches: the flung card's flight IS the
-  // show, so the incoming card just materializes instead of streaking in.
-  const tossSpring = { type: 'spring', stiffness: 380, damping: 30, mass: 0.7 } as const;
-  interface CoverCustom {
-    dir: 1 | -1;
-    soft: boolean;
-  }
-  const tossVariants = {
-    enter: (c: CoverCustom) =>
-      reduced
-        ? { opacity: 0 }
-        : c.soft
-          ? { opacity: 0, scale: 0.93 }
-          : { opacity: 0, x: c.dir * 260, rotate: c.dir * 10, scale: 0.9 },
-    center: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 },
-    exit: (c: CoverCustom) =>
-      reduced
-        ? { opacity: 0 }
-        : { opacity: 0, x: -c.dir * 340, rotate: -c.dir * 14, scale: 0.93 },
-  };
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -193,38 +168,16 @@ export default function PlayerView() {
     currentBook.isPlaylist ||
       (!isYouTubeBook && currentBook.chapters && currentBook.chapters.length > 1),
   );
-  // Frame tilt driven by the drag (the frame owns no rotate variants, so no
-  // fight with the card's enter/exit toss). Card x/y stay internal to the
-  // dragged element, so exits correctly continue from the release point.
+  // Cover fling to switch chapters (no spring/enter-exit animation — the
+  // new cover appears instantly to avoid CPU strain). The frame only tilts
+  // lightly with the finger and eases back with a cheap tween.
   const frameRotate = useMotionValue(0);
-  // While true the frame stops clipping, so the card visibly leaves its box.
-  const [coverFree, setCoverFree] = useState(false);
-  // Soft incoming toss right after a fling switch (the flight was the show).
-  const [softEnter, setSoftEnter] = useState(false);
-  const coverRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const softEnterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
-      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
-    };
-  }, []);
-
-  const scheduleCoverRestore = (ms: number) => {
-    if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
-    coverRestoreTimer.current = setTimeout(() => setCoverFree(false), ms);
-  };
   const settleFrame = () => {
-    animate(frameRotate, 0, { type: 'spring', stiffness: 320, damping: 24 });
+    animate(frameRotate, 0, { duration: 0.15, ease: 'easeOut' });
   };
 
-  const handleCoverDragStart = () => {
-    if (!canSwitchChapters) return;
-    if (coverRestoreTimer.current) clearTimeout(coverRestoreTimer.current);
-    if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
-    setCoverFree(true);
-  };
   const handleCoverDrag = (_: unknown, info: PanInfo) => {
+    if (!canSwitchChapters) return;
     frameRotate.set(Math.max(-14, Math.min(14, info.offset.x * 0.06)));
   };
   const handleCoverDragEnd = (_: unknown, info: PanInfo) => {
@@ -232,25 +185,12 @@ export default function PlayerView() {
     settleFrame();
     const { x: offsetX } = info.offset;
     const { x: velocityX } = info.velocity;
-    // Screen pixels: fling left = next chapter, fling right = previous,
-    // matching the toss direction (old card exits to the left on "next").
-    // Vertical movement is free play and always springs back.
+    // Screen pixels: fling left = next chapter, fling right = previous.
+    // Vertical movement is free play and snaps back via constraints.
     if (offsetX <= -90 || velocityX <= -600) {
-      setSoftEnter(true);
-      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
-      softEnterTimer.current = setTimeout(() => setSoftEnter(false), 650);
       nextChapter();
-      // Let the flung card fly out freely before re-clipping the frame.
-      scheduleCoverRestore(550);
     } else if (offsetX >= 90 || velocityX >= 600) {
-      setSoftEnter(true);
-      if (softEnterTimer.current) clearTimeout(softEnterTimer.current);
-      softEnterTimer.current = setTimeout(() => setSoftEnter(false), 650);
       previousChapter();
-      scheduleCoverRestore(550);
-    } else {
-      // Below threshold: the elastic constraints spring the card home.
-      scheduleCoverRestore(380);
     }
   };
 
@@ -326,35 +266,21 @@ export default function PlayerView() {
               <span className="text-[12px] text-white/40">טוען נגן וידאו מיוטיוב...</span>
             </div>
           ) : (
-            /* Standard or Audio-only Cover Artwork — shared-element target
-               for the library-thumbnail → player morph */
+            /* Standard or Audio-only Cover Artwork — static, no spring or
+               shared-element morph (removed for CPU/perf) */
             <div className="relative">
-            <motion.div
-              layoutId={`cover-${currentBook.id}`}
-              transition={tx(reduced, springSnappy)}
-              initial={reduced ? false : { scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              whileTap={reduced ? undefined : { scale: 0.98 }}
-              style={{ rotate: frameRotate }}
-              className={`relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl ${coverFree ? 'overflow-visible z-20' : 'overflow-hidden'}`}
-            >
-              <AnimatePresence initial={false} custom={{ dir: tossDir, soft: softEnter }}>
+              <motion.div
+                style={{ rotate: frameRotate }}
+                className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-hidden"
+              >
                 <motion.img
-                  key={chapterKey}
-                  custom={{ dir: tossDir, soft: softEnter }}
-                  variants={tossVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={tx(reduced, tossSpring)}
+                  key={currentBook.id}
                   drag={canSwitchChapters ? true : false}
                   dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
                   dragElastic={0.55}
                   dragMomentum={false}
-                  onDragStart={handleCoverDragStart}
                   onDrag={handleCoverDrag}
                   onDragEnd={handleCoverDragEnd}
-                  whileDrag={{ cursor: 'grabbing', scale: 1.03 }}
                   className="absolute inset-0 w-full h-full object-cover rounded-2xl touch-pan-y cursor-grab"
                   title={canSwitchChapters ? 'גרור הצידה למעבר פרק' : undefined}
                   alt={currentBook.title}
@@ -368,8 +294,7 @@ export default function PlayerView() {
                     }
                   }}
                 />
-              </AnimatePresence>
-            </motion.div>
+              </motion.div>
             </div>
           )}
         </div>
