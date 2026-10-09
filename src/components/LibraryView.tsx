@@ -23,8 +23,6 @@ export default function LibraryView() {
     importYouTubeAudio,
     formatTime,
     formatRemainingTime,
-    setIsSleepTimerModalOpen,
-    sleepTimerSecondsRemaining,
     showToast,
   } = useAudio();
 
@@ -436,27 +434,6 @@ export default function LibraryView() {
           </div>
         )}
       </section>
-
-      {/* Subtle Sleep Companion Bar */}
-      <div className="glass-static rounded-2xl px-4 py-3 flex items-center justify-between text-[#9a9da6]">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-[#ffb86b]/80 text-[20px]">bedtime</span>
-          <div className="flex flex-col">
-            <span className="text-[13px] text-white/90 font-medium">טיימר שינה מתוזמן</span>
-            <span className="text-[11px] text-white/45">
-              {sleepTimerSecondsRemaining
-                ? `כיבוי בעוד ${Math.ceil(sleepTimerSecondsRemaining / 60)} דקות`
-                : 'כבוי — ללא טיימר פעיל'}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => setIsSleepTimerModalOpen(true)}
-          className="text-[12px] text-[#ffb86b] hover:underline px-2 py-1 cursor-pointer font-medium"
-        >
-          הגדרות
-        </button>
-      </div>
 
       {/* Delete confirmation */}
       <AnimatePresence>
