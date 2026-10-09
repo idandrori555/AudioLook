@@ -70,7 +70,12 @@ interface AudioContextType {
   // Failure surfacing: without these, an unplayable video / blocked YT API
   // leaves a dead 00:00 slider with a lying play button and zero feedback.
   ytBlocked: boolean;
+  setYtBlocked: (blocked: boolean) => void;
   reportYtApiBlocked: () => void;
+  // Bumps every time the user taps "try again" so YouTubeHost re-runs
+  // player init (the init effect depends on it).
+  ytRetryToken: number;
+  retryYt: () => void;
   ytError: { bookId: string | null; code: number; message: string } | null;
   reportYtError: (code: number) => void;
   clearYtError: () => void;
@@ -214,6 +219,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // True once we give up waiting for the YT IFrame API (ad-blocker/offline).
   // While true, play on YT books must NOT fake a "playing" state.
   const [ytBlocked, setYtBlocked] = useState(false);
+  // Init-buster for the YouTubeHost singleton: retryYt() clears the blocked
+  // flag and bumps this token so init re-runs (recover without reload).
+  const [ytRetryToken, setYtRetryToken] = useState(0);
   // Last player error for the current book (embed-blocked/deleted/...).
   const [ytError, setYtError] = useState<{
     bookId: string | null;
@@ -510,7 +518,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           Math.abs(last.start - resumeTime) < 2 &&
           Date.now() - last.at < 3000
         ) {
+          // Still honor a pending play intent (e.g. user pressed play while
+          // the player was loading): playVideo() never cancels an in-flight
+          // load, it only ensures the cued video actually starts.
+          const shouldPlay = pendingAutoPlayRef.current ?? isPlayingRef.current;
           pendingAutoPlayRef.current = null;
+          if (shouldPlay && typeof ytPlayer.playVideo === 'function') {
+            try {
+              ytPlayer.playVideo();
+            } catch {}
+          }
           return;
         }
         // Otherwise (initial mount, YT just became ready, restore): honor
@@ -575,6 +592,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     isPlayingRef.current = false;
     setIsPlaying(false);
     showToast('נגן יוטיוב לא נטען — בדקו חיבור לרשת או חוסם פרסומות');
+  }, [showToast]);
+
+  // Manual recovery from the blocked state (banner "try again" button):
+  // clears the flag and forces YouTubeHost to attempt init from scratch.
+  const retryYt = useCallback(() => {
+    setYtBlocked(false);
+    setYtError(null);
+    pendingAutoPlayRef.current = null;
+    setYtRetryToken((t) => t + 1);
+    showToast('מנסה לטעון את נגן יוטיוב שוב…');
   }, [showToast]);
 
   const clearYtError = useCallback(() => {
@@ -857,8 +884,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // Dead zone: YT book but no usable player because the API is blocked.
     // The old fallback flipped a local "playing" flag with no sound and no
     // advancing clock — a frozen 00:00 that looks exactly like this bug.
-    if (currentBook.youtubeId && (!ytPlayer || !isYtReady) && ytBlocked) {
-      reportYtApiBlocked();
+    if (currentBook.youtubeId && (!ytPlayer || !isYtReady)) {
+      if (ytBlocked) {
+        reportYtApiBlocked();
+        return;
+      }
+      // Player still loading (API script in flight, onReady pending): stay
+      // truthfully paused and remember the intent — the [currentBook?.id]
+      // sync effect autoplays once the player is ready, and the poller then
+      // flips the icon. Never fake "playing" with no time source, or the
+      // bar + 00:00:00 sit frozen under a lying pause icon.
+      pendingAutoPlayRef.current = true;
+      showToast('נגן יוטיוב עדיין נטען — ההשמעה תתחיל אוטומטית');
       return;
     }
 
@@ -1197,6 +1234,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('Failed to switch video on YT player:', e);
       }
+    } else if (videoToPlay) {
+      // YT target but no ready player (still loading, or blocked): stay
+      // truthfully paused — the clock has no time source until the player
+      // is ready, so claiming "playing" freezes the bar at 00:00:00.
+      // Intent stays pending: the sync effect consumes it once YT is ready.
+      isPlayingRef.current = false;
+      setIsPlaying(false);
     } else {
       if (autoPlay) {
         isPlayingRef.current = true;
@@ -1205,7 +1249,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         isPlayingRef.current = false;
         setIsPlaying(false);
       }
-      // Intent stays pending: the sync effect consumes it once YT is ready.
     }
 
     if (navigateToPlayer) {
@@ -1355,9 +1398,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('Bookmark jump YT load failed:', e);
       }
+    } else if (videoToPlay) {
+      // YT target but no ready player (still loading, or blocked): stay
+      // truthfully paused — same frozen-00:00 dead zone as selectBook.
+      // pendingAutoPlayRef is already true above; the sync effect consumes
+      // it once YT is ready.
+      isPlayingRef.current = false;
+      setIsPlaying(false);
     } else {
-      // YT not ready (or non-YT book): optimistic playing state; the
-      // [currentBook?.id] sync effect consumes pendingAutoPlayRef once ready.
+      // Non-YT book: optimistic playing state; the synthetic timer drives
+      // the clock immediately.
       isPlayingRef.current = true;
       setIsPlaying(true);
     }
@@ -1662,7 +1712,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         isYtReady,
         setIsYtReady,
         ytBlocked,
+        setYtBlocked,
         reportYtApiBlocked,
+        ytRetryToken,
+        retryYt,
         ytError,
         reportYtError,
         clearYtError,

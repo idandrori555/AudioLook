@@ -32,6 +32,8 @@ export default function PlayerView() {
     toggleVideoMode,
     ytBlocked,
     ytError,
+    retryYt,
+    isYtReady,
   } = useAudio();
 
   const [isSpeedMenuOpen, setIsSpeedMenuOpen] = useState(false);
@@ -396,11 +398,32 @@ export default function PlayerView() {
             <span className="material-symbols-outlined text-[18px] text-red-300/90 flex-shrink-0 mt-px">
               {ytBlocked ? 'wifi_off' : 'smart_display'}
             </span>
-            <span>
+            <span className="flex-1">
               {ytBlocked
                 ? 'נגן יוטיוב לא נטען — בדקו חיבור לרשת או חוסם פרסומות, וטענו מחדש.'
                 : ytError?.message}
             </span>
+            {ytBlocked && (
+              <button
+                onClick={retryYt}
+                className="flex-shrink-0 px-2.5 py-1 rounded-lg bg-red-400/15 hover:bg-red-400/25 text-red-100 text-[12px] font-medium transition-colors cursor-pointer"
+              >
+                נסה שוב
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Player still loading — truthful "wait" state so a 00:00 slider
+            under a play icon is never mistaken for a stuck player */}
+        {isYouTubeBook && !isYtReady && !ytBlocked && !(ytError && ytError.bookId === currentBook.id) && (
+          <div
+            dir="rtl"
+            className="w-full mb-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white/[0.04] ring-1 ring-white/10 text-[12px] text-white/55"
+            role="status"
+          >
+            <span className="material-symbols-outlined text-[16px] animate-spin motion-reduce:animate-none">refresh</span>
+            <span>טוען נגן יוטיוב…</span>
           </div>
         )}
 

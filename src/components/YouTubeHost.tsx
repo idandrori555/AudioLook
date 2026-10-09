@@ -11,7 +11,9 @@ declare global {
 export default function YouTubeHost() {
   const {
     currentBook,
+    ytPlayer,
     setYtPlayer,
+    isYtReady,
     setIsYtReady,
     activeTab,
     isVideoMode,
@@ -19,7 +21,10 @@ export default function YouTubeHost() {
     markBookCompleted,
     reportYtError,
     clearYtError,
+    ytBlocked,
+    setYtBlocked,
     reportYtApiBlocked,
+    ytRetryToken,
   } = useAudio();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -114,6 +119,12 @@ export default function YouTubeHost() {
     let checkInterval: NodeJS.Timeout | null = null;
     const startedAt = Date.now();
 
+    // Manual retry (banner "try again"): drop the stale instance so init is
+    // genuinely re-attempted instead of early-returning on a dead player.
+    if (ytRetryToken > 0) {
+      playerInstanceRef.current = null;
+    }
+
     const initPlayer = () => {
       if (playerInstanceRef.current || !containerRef.current) return;
 
@@ -137,6 +148,9 @@ export default function YouTubeHost() {
               playerInstanceRef.current = event.target;
               setYtPlayer(event.target);
               setIsYtReady(true);
+              // Late-ready heal: the watchdog may have declared us blocked
+              // while the iframe was still spinning up — drop the banner.
+              setYtBlocked(false);
               const latestBook = currentBookRef.current;
               if (latestBook?.youtubeId) {
                 const chIdx = latestBook.currentChapterIndex || 0;
@@ -205,8 +219,27 @@ export default function YouTubeHost() {
     // NOTE: intentionally omit isPlaying/nextChapter/currentBook — the player is a
     // singleton; re-running init on playback toggles caused re-init checks + glitches.
     // reportYtError/clearYtError/reportYtApiBlocked are stable callbacks.
+    // ytRetryToken intentionally included: the "try again" button must re-run init.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setYtPlayer, setIsYtReady, reportYtError, clearYtError, reportYtApiBlocked]);
+  }, [setYtPlayer, setIsYtReady, setYtBlocked, reportYtError, clearYtError, reportYtApiBlocked, ytRetryToken]);
+
+  // Universal ready-watchdog: the init effect above only watches the
+  // "API script missing" path. When the API is cached (direct-init path) or
+  // the iframe itself never fires onReady (blocked embed, origin mismatch),
+  // nothing would ever report failure — the app would sit at a frozen 00:00
+  // with zero feedback. This covers ALL paths: a YT book with no ready
+  // player after the timeout is declared blocked, whatever the cause.
+  useEffect(() => {
+    if (!currentBook?.youtubeId) return;
+    if (ytBlocked) return;
+    if (isYtReady && ytPlayer) return;
+    const t = setTimeout(() => {
+      if (!playerInstanceRef.current) {
+        reportYtApiBlocked();
+      }
+    }, YT_API_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [currentBook?.youtubeId, isYtReady, ytPlayer, ytBlocked, ytRetryToken, reportYtApiBlocked]);
 
   const shouldDisplayInSlot =
     activeTab === 'player' && isVideoMode && Boolean(currentBook?.youtubeId) && slotRect;
