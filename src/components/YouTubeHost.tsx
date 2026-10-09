@@ -201,6 +201,12 @@ export default function YouTubeHost() {
             },
           },
         });
+        // Synchronous guard: the API-ready callback AND the 400ms poll can
+        // both reach here before async onReady fires — without this, two
+        // players construct on the same div (ghost audio from one, a
+        // permanently-buffering binding on the other, frozen 00:00:00).
+        // onReady later swaps in event.target (the same object).
+        playerInstanceRef.current = player;
       } catch (e) {
         console.warn('Error instantiating YT.Player:', e);
       }
@@ -223,6 +229,13 @@ export default function YouTubeHost() {
 
     return () => {
       if (checkInterval) clearInterval(checkInterval);
+      // Tear down the iframe so remounts (dev HMR/Hot-refresh) and rebuilds
+      // never leave a ghost player behind: an orphaned iframe keeps playing
+      // audio with no API binding while the new player wedges buffering.
+      try {
+        playerInstanceRef.current?.destroy?.();
+      } catch {}
+      playerInstanceRef.current = null;
     };
     // NOTE: intentionally omit isPlaying/nextChapter/currentBook — the player is a
     // singleton; re-running init on playback toggles caused re-init checks + glitches.

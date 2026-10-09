@@ -845,13 +845,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           // ignore
         }
 
-        // Player-binding health: while we intend to play, the getters must
-        // work AND the clock must advance. A dead binding (getters throw) or
-        // ghost playback (state PLAYING, clock frozen ~4s) means the iframe
-        // outlived our API handle — rebuild instead of lying. The sync
-        // effect resumes at the last known position once the fresh player
-        // is ready.
-        if (isPlayingRef.current) {
+        // Player-binding health: while the tab is visible and we intend to
+        // play, the clock must advance — regardless of reported state. This
+        // catches every wedged-player shape: dead getters, ghost playback,
+        // and the proven one — a player buffering forever at 0:00 (state 3)
+        // or flapping states without ever progressing. Hidden tabs are
+        // skipped (throttled timers + OS-paused iframe would false-fire).
+        // Rebuild instead of lying: the sync effect resumes at the last
+        // known position once the fresh player is ready.
+        const tabVisible =
+          typeof document === 'undefined' || !document.hidden;
+        if (isPlayingRef.current && tabVisible) {
           if (!tickOk) {
             ytBadTickRef.current += 1;
             ytStuckTickRef.current = 0;
@@ -859,7 +863,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             ytBadTickRef.current = 0;
             // Responsive getters = live binding — reset the rebuild cap.
             if (tickState !== null) ytRebuildCountRef.current = 0;
-            if (tickState === 1 && tickClock !== null) {
+            if (tickClock !== null) {
               if (
                 ytLastClockRef.current >= 0 &&
                 Math.abs(tickClock - ytLastClockRef.current) < 0.5
@@ -869,16 +873,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
                 ytStuckTickRef.current = 0;
               }
               ytLastClockRef.current = tickClock;
-            } else {
-              ytStuckTickRef.current = 0;
-              if (tickClock !== null) ytLastClockRef.current = tickClock;
             }
           }
-          if (ytBadTickRef.current >= 6 || ytStuckTickRef.current >= 8) {
+          if (ytBadTickRef.current >= 6 || ytStuckTickRef.current >= 12) {
             rebuildYtPlayer(false);
             return;
           }
-        } else {
+        } else if (!isPlayingRef.current) {
           ytBadTickRef.current = 0;
           ytStuckTickRef.current = 0;
         }
