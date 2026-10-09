@@ -12,6 +12,8 @@ export default function SettingsView() {
     setPlaybackSpeed,
     audioSoundEnabled,
     setAudioSoundEnabled,
+    isVideoMode,
+    toggleVideoMode,
     books,
     showToast,
     exportLibrary,
@@ -129,6 +131,30 @@ export default function SettingsView() {
               layout
               transition={tx(reduced, springGentle)}
               className={`w-5 h-5 rounded-full shadow ${audioSoundEnabled ? 'bg-[#2c1700]' : 'bg-white/60'
+                }`}
+            />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+          <div className="flex flex-col">
+            <span className="text-[14px] text-white">הצגת וידאו בנגן</span>
+            <span className="text-[11px] text-[#9a9da6]">
+              כבוי כברירת מחדל — הנגן מציג כריכה נקייה, ההאזנה נמשכת ברקע
+            </span>
+          </div>
+          <button
+            onClick={toggleVideoMode}
+            role="switch"
+            aria-checked={isVideoMode}
+            aria-label="הצגת וידאו בנגן"
+            className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 cursor-pointer flex items-center ${isVideoMode ? 'bg-[#ffb86b] justify-end shadow-[0_0_16px_rgba(255,184,107,0.4)]' : 'bg-white/10 justify-start'
+              }`}
+          >
+            <motion.div
+              layout
+              transition={tx(reduced, springGentle)}
+              className={`w-5 h-5 rounded-full shadow ${isVideoMode ? 'bg-[#2c1700]' : 'bg-white/60'
                 }`}
             />
           </button>

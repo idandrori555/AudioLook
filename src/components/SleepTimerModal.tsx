@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { easeApple, springFast, springGentle, staggerDelay, tx, useAppReducedMotion } from './motion';
 
 const MAX_CUSTOM_MINUTES = 480;
+const CUSTOM_DEFAULT_MINUTES = 10;
 
 export default function SleepTimerModal() {
   const {
@@ -21,36 +22,68 @@ export default function SleepTimerModal() {
     { label: '45 דקות', minutes: 45 },
     { label: '60 דקות (שעה)', minutes: 60 },
   ];
-  const [customMinutes, setCustomMinutes] = useState('');
-  const [customError, setCustomError] = useState<string | null>(null);
+  const [customDraft, setCustomDraft] = useState(CUSTOM_DEFAULT_MINUTES);
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
+  const stepCustom = (delta: number) => {
+    setCustomDraft((prev) => Math.min(MAX_CUSTOM_MINUTES, Math.max(1, prev + delta)));
+    try {
+      navigator.vibrate?.(8);
+    } catch {}
+  };
+
+  // Press-and-hold to repeat: first step fires on pointer-down, then fast
+  // repeat after a short pause. Keyboard users get single steps via onClick
+  // (detail === 0), so pointer clicks must not double-step.
+  const repeatRef = useRef<{
+    timeout: ReturnType<typeof setTimeout> | null;
+    interval: ReturnType<typeof setInterval> | null;
+  }>({ timeout: null, interval: null });
+
+  const stopRepeat = () => {
+    if (repeatRef.current.timeout) clearTimeout(repeatRef.current.timeout);
+    if (repeatRef.current.interval) clearInterval(repeatRef.current.interval);
+    repeatRef.current.timeout = null;
+    repeatRef.current.interval = null;
+  };
+
+  const startRepeat = (delta: number) => {
+    stopRepeat();
+    repeatRef.current.timeout = setTimeout(() => {
+      repeatRef.current.interval = setInterval(() => stepCustom(delta), 70);
+    }, 450);
+  };
+
+  // Cleanup repeat timers on unmount (avoids setState after unmount)
+  useEffect(() => stopRepeat, []);
+
   const applyCustomMinutes = () => {
-    const parsed = Math.floor(Number(customMinutes));
-    if (!customMinutes.trim() || isNaN(parsed) || parsed < 1) {
-      setCustomError('הכניסו מספר דקות חוקי (1 ומעלה)');
-      return;
-    }
-    if (parsed > MAX_CUSTOM_MINUTES) {
-      setCustomError(`עד ${MAX_CUSTOM_MINUTES} דקות (8 שעות)`);
-      return;
-    }
-    setCustomError(null);
-    setSleepTimer(parsed);
+    stopRepeat();
+    setSleepTimer(customDraft);
     setIsSleepTimerModalOpen(false);
-    setCustomMinutes('');
   };
 
   const isCustomSelected =
     sleepTimerMinutes !== null && !presets.some((p) => p.minutes === sleepTimerMinutes);
 
-  // If a custom timer is already active, expand its editor on open so the
-  // value is visible and editable instead of hidden behind the toggle.
+  // On open: seed the stepper from the active custom timer (or the default),
+  // and expand its editor if a custom timer is already active.
   useEffect(() => {
-    if (isSleepTimerModalOpen && isCustomSelected) {
-      setIsCustomOpen(true);
+    if (isSleepTimerModalOpen) {
+      setCustomDraft(
+        isCustomSelected && sleepTimerMinutes ? sleepTimerMinutes : CUSTOM_DEFAULT_MINUTES,
+      );
+      if (isCustomSelected) {
+        setIsCustomOpen(true);
+      }
     }
-  }, [isSleepTimerModalOpen, isCustomSelected]);
+  }, [isSleepTimerModalOpen, isCustomSelected, sleepTimerMinutes]);
+
+  // Human hint for long durations (e.g. 90 → "שעה וחצי", 125 → "שעתיים ו־5 דקות")
+  const customHint =
+    customDraft >= 60
+      ? `(${Math.floor(customDraft / 60)} שע׳${customDraft % 60 > 0 ? ` ו־${customDraft % 60} דק׳` : ''})`
+      : null;
 
   return (
     <AnimatePresence>
@@ -170,36 +203,76 @@ export default function SleepTimerModal() {
                 transition={tx(reduced, { type: 'tween', duration: 0.22, ease: easeApple })}
                 className="overflow-hidden"
               >
-                <div className="flex flex-col gap-2 pt-1">
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl border border-white/[0.04] bg-white/[0.04] focus-within:border-[#ffb86b]/40 text-[14px] transition-colors">
-                    <input
-                      value={customMinutes}
-                      autoFocus={!reduced}
-                      onChange={(e) => {
-                        setCustomMinutes(e.target.value.replace(/[^0-9]/g, '').slice(0, 3));
-                        setCustomError(null);
+                <div className="flex flex-col gap-2.5 pt-1">
+                  {/* Stepper: −1 / value / +1 — tap for single minutes,
+                      press-and-hold for fast repeat. Clamped 1–480. */}
+                  <div
+                    className="flex items-center justify-between p-3 rounded-xl border border-white/[0.04] bg-white/[0.04] text-[14px]"
+                    dir="rtl"
+                  >
+                    <motion.button
+                      whileTap={reduced ? undefined : { scale: 0.88 }}
+                      onPointerDown={() => {
+                        stepCustom(-1);
+                        startRepeat(-1);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') applyCustomMinutes();
+                      onPointerUp={stopRepeat}
+                      onPointerLeave={stopRepeat}
+                      onPointerCancel={stopRepeat}
+                      onClick={(e) => {
+                        if (e.detail === 0) stepCustom(-1);
                       }}
-                      inputMode="numeric"
-                      type="number"
-                      min={1}
-                      max={MAX_CUSTOM_MINUTES}
-                      placeholder="כמה דקות?"
-                      aria-label="זמן מותאם אישית בדקות"
-                      className="flex-1 min-w-[3rem] bg-transparent outline-none font-mono text-white/90 text-start placeholder:text-white/30 placeholder:font-sans placeholder:text-[13px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={applyCustomMinutes}
-                      className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium bg-white/[0.08] text-white/85 hover:bg-[#ffb86b]/15 hover:text-[#ffb86b] active:scale-95 transition-all cursor-pointer flex-shrink-0"
+                      disabled={customDraft <= 1}
+                      aria-label="הפחת דקה"
+                      className="w-11 h-11 rounded-full bg-white/[0.07] hover:bg-[#ffb86b]/20 text-white/85 hover:text-[#ffb86b] active:bg-[#ffb86b]/25 flex items-center justify-center transition-colors cursor-pointer select-none touch-none disabled:opacity-30 disabled:pointer-events-none"
                     >
-                      הגדר
-                    </button>
+                      <span className="material-symbols-outlined text-[22px]">remove</span>
+                    </motion.button>
+
+                    <div className="flex flex-col items-center min-w-[5rem]">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={customDraft}
+                          initial={reduced ? false : { scale: 0.8, opacity: 0.4 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={tx(reduced, springFast)}
+                          className="text-[32px] leading-none font-bold font-mono tabular-nums text-white"
+                          aria-live="polite"
+                          aria-label={`${customDraft} דקות`}
+                        >
+                          {customDraft}
+                        </motion.span>
+                      </AnimatePresence>
+                      <span className="text-[12px] text-white/50 mt-1">
+                        דקות{customHint ? ` ${customHint}` : ''}
+                      </span>
+                    </div>
+
+                    <motion.button
+                      whileTap={reduced ? undefined : { scale: 0.88 }}
+                      onPointerDown={() => {
+                        stepCustom(1);
+                        startRepeat(1);
+                      }}
+                      onPointerUp={stopRepeat}
+                      onPointerLeave={stopRepeat}
+                      onPointerCancel={stopRepeat}
+                      onClick={(e) => {
+                        if (e.detail === 0) stepCustom(1);
+                      }}
+                      disabled={customDraft >= MAX_CUSTOM_MINUTES}
+                      aria-label="הוסף דקה"
+                      className="w-11 h-11 rounded-full bg-white/[0.07] hover:bg-[#ffb86b]/20 text-white/85 hover:text-[#ffb86b] active:bg-[#ffb86b]/25 flex items-center justify-center transition-colors cursor-pointer select-none touch-none disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <span className="material-symbols-outlined text-[22px]">add</span>
+                    </motion.button>
                   </div>
-                  {customError && (
-                    <p className="text-[12px] text-red-400 text-center">{customError}</p>
-                  )}
+                  <button
+                    onClick={applyCustomMinutes}
+                    className="w-full py-2.5 rounded-xl text-[14px] font-semibold bg-[#ffb86b] hover:bg-[#ffc685] text-[#2c1700] active:scale-[0.98] transition-all cursor-pointer shadow-[0_8px_24px_-8px_rgb(255_184_107/0.5)]"
+                  >
+                    הגדר טיימר ל־{customDraft} דקות
+                  </button>
                 </div>
               </motion.div>
             )}

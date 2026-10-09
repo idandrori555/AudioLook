@@ -228,9 +228,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     code: number;
     message: string;
   } | null>(null);
-  // Default is cover-audio mode (האזנה). The _v2 key retires the old default
-  // (video) so every install picks up audio-first once, then remembers choice.
-  const VIDEO_MODE_KEY = 'lyra_video_mode_v2';
+  // Default is cover-audio mode (cleaner player). The _v3 key retires all
+  // previous defaults so every install starts cover-first once, then the
+  // choice lives in Settings (not in the player UI anymore).
+  const VIDEO_MODE_KEY = 'lyra_video_mode_v3';
   const [isVideoMode, setIsVideoModeState] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(VIDEO_MODE_KEY);
