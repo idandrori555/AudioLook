@@ -581,8 +581,7 @@ export default function PlayerView() {
         </div>
 
         {/* Secondary Quiet Utility Strip (Speed, Sleep Timer, Bookmark) */}
-        <div className="glass-static relative flex items-center justify-around flex-wrap gap-y-2 py-3 px-1 min-[380px]:px-2 rounded-2xl mb-5">
-          <div className="glass-glint" />
+        <div className="glass-static flex items-center justify-around flex-wrap gap-y-2 py-3 px-1 min-[380px]:px-2 rounded-2xl mb-5">
           {/* Speed Selector */}
           <div className="relative">
             <button

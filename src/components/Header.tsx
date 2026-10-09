@@ -14,10 +14,9 @@ export default function Header() {
         initial={{ opacity: 0, y: reduced ? 0 : -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={tx(reduced, springGentle)}
-        className="glass relative overflow-hidden rounded-2xl h-14 px-4 flex items-center justify-between max-w-xl mx-auto"
-      >
-        <div className="glass-glint" />
-        <div className="flex items-center gap-2.5">
+          className="glass relative overflow-hidden rounded-2xl h-14 px-4 flex items-center justify-between max-w-xl mx-auto"
+        >
+          <div className="flex items-center gap-2.5">
           <span className="flex items-center justify-center w-7 h-7">
             {logoFailed ? (
               <span className="material-symbols-outlined text-[20px] text-[#ffb86b]" aria-hidden="true">

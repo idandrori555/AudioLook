@@ -29,10 +29,9 @@ export default function AccountModal() {
         transition={tx(reduced, springFast)}
         className="glass relative overflow-hidden w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-5 flex flex-col gap-4 text-right"
         dir="rtl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="glass-glint" />
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#ffb86b] text-[22px]">account_circle</span>
             <h3 className="text-[17px] font-semibold text-white">החשבון שלי</h3>

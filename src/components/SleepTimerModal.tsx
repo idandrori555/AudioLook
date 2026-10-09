@@ -107,7 +107,6 @@ export default function SleepTimerModal() {
             dir="rtl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="glass-glint" />
             <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#ffb86b] text-[22px]">bedtime</span>

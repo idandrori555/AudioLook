@@ -118,9 +118,8 @@ export default function LibraryView() {
       </motion.div>
 
       {/* Quiet Integrated Quick-Import Field */}
-      <div className="glass-static relative flex items-center rounded-2xl p-1.5 pr-3.5 focus-within:!border-[#ffb86b]/40 transition-colors overflow-hidden">
-        <div className="glass-glint" />
-        <span className="material-symbols-outlined text-white/40 text-[19px] ml-2 flex-shrink-0">
+        <div className="glass-static relative flex items-center rounded-2xl p-1.5 pr-3.5 focus-within:!border-[#ffb86b]/40 transition-colors overflow-hidden">
+          <span className="material-symbols-outlined text-white/40 text-[19px] ml-2 flex-shrink-0">
           add_link
         </span>
         <input
@@ -215,7 +214,6 @@ export default function LibraryView() {
             transition={tx(reduced, springGentle)}
             className="glass-static relative overflow-hidden rounded-2xl p-4 hover:border-[#ffb86b]/25 hover:shadow-[0_16px_48px_-12px_rgb(255_184_107/0.25)] transition-all duration-300 flex flex-col gap-4"
           >
-            <div className="glass-glint" />
             <div className="pointer-events-none absolute -top-20 -end-20 w-56 h-56 rounded-full bg-[#ffb86b]/[0.07] blur-3xl" aria-hidden="true" />
             <div
               className="flex items-start gap-4 cursor-pointer"
@@ -455,7 +453,6 @@ export default function LibraryView() {
               dir="rtl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="glass-glint" />
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-red-400 text-[22px]">delete</span>
                 <h3 className="text-[17px] font-semibold text-white">למחוק את הספר?</h3>

@@ -38,10 +38,9 @@ export default function SearchModal() {
         transition={tx(reduced, springFast)}
         className="glass relative w-full max-w-md rounded-2xl flex flex-col max-h-[80vh] overflow-hidden"
         dir="rtl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="glass-glint" />
-        {/* Search input header */}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Search input header */}
         <div className="p-3 border-b border-white/[0.06] flex items-center gap-2">
           <span className="material-symbols-outlined text-white/40 text-[20px] mr-1">search</span>
           <input

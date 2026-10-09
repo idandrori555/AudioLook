@@ -83,7 +83,9 @@
     inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
-/* Specular top-light line for glass panels (place first child, parent needs relative + overflow-hidden) */
+/* Specular top-light line — dock-only. Do not add to other panels/cards:
+   repeating it on every container flattens the design. (Place first child,
+   parent needs relative + overflow-hidden) */
 .glass-glint {
   pointer-events: none;
   position: absolute;
