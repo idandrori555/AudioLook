@@ -306,13 +306,18 @@ export default function LibraryView() {
         </section>
       ) : (
         <section className="glass-static rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-white/[0.04] text-[#ffb86b] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[30px]">local_library</span>
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl -rotate-6 bg-[#ffb86b]/10 ring-1 ring-[#ffb86b]/30 text-[#ffb86b] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[30px]">local_library</span>
+            </div>
+            <span className="material-symbols-outlined absolute -top-1.5 -end-2 text-[16px] text-[#ffc685] bg-[#1d1e23] rounded-full">
+              auto_awesome
+            </span>
           </div>
           <div className="flex flex-col gap-1">
-            <h3 className="text-[17px] font-semibold text-white">הספרייה שלך ריקה כרגע</h3>
+            <h3 className="text-[17px] font-semibold text-white">הספרייה מחכה לסיפור הראשון</h3>
             <p className="text-[13px] text-[#9a9da6] max-w-sm">
-              הדבק קישור יוטיוב בשורת הייבוא למעלה.
+              הדביקו קישור יוטיוב בשורת הייבוא למעלה — ותוך שניות יש לכם מה לשמוע.
             </p>
           </div>
         </section>
@@ -344,15 +349,15 @@ export default function LibraryView() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={tx(reduced, { ...springGentle, delay: intro ? staggerDelay(i) : 0 })}
                   whileTap={reduced ? undefined : pressTap}
-                  className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-[#ffb86b]/25 hover:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.6)] transition-all duration-300 cursor-pointer ${isDone ? 'opacity-85' : ''
+                  className={`group glass-static rounded-2xl p-3 flex items-center gap-3.5 hover:border-[#ffb86b]/25 hover:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.6)] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${isDone ? 'opacity-85' : ''
                     } ${isSelected ? '!border-[#ffb86b]/40 shadow-[0_12px_32px_-12px_rgb(255_184_107/0.3)]' : ''}`}
                 >
-                  {/* Thumbnail — static (shared-element cover morph removed for perf) */}
+                  {/* Thumbnail — playfully tilts toward you on hover */}
                   <div
                     className="relative w-14 h-19 rounded-md overflow-hidden flex-shrink-0 shadow-sm bg-[#0a0b0d] ring-1 ring-white/5"
                   >
                     <CoverImg
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-cover group-hover:scale-[1.08] group-hover:-rotate-2 transition-transform duration-300"
                       alt={book.title}
                       src={book.coverUrl}
                       iconClassName="text-[16px]"
@@ -366,7 +371,21 @@ export default function LibraryView() {
 
                   {/* Details */}
                   <div className="flex flex-col min-w-0 flex-1 justify-center gap-1">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {/* Status dot: amber pulse = now playing, amber = listening,
+                          sky = queued, green = done */}
+                      <span
+                        title={isDone ? 'הושלם' : book.category === 'queued' ? 'ממתין' : 'בהאזנה'}
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${isDone
+                          ? 'bg-emerald-400'
+                          : book.category === 'queued'
+                            ? 'bg-sky-400/90'
+                            : isSelected && isPlaying
+                              ? 'bg-[#ffb86b] animate-pulse motion-reduce:animate-none'
+                              : 'bg-[#ffb86b]/70'
+                          }`}
+                      />
                       <h4 className="text-[15px] font-medium text-white truncate group-hover:text-[#ffb86b] transition-colors">
                         {book.title}
                       </h4>

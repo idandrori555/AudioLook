@@ -316,6 +316,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // selectBook stores intent, sync effect consumes it once player is ready).
   const pendingAutoPlayRef = useRef<boolean | null>(null);
   const playbackSpeedRef = useRef<number>(1);
+  // Player-binding health (dead-getter / frozen-clock detectors, see poller).
+  // The iframe can outlive our JS binding (stale object after a re-init, a
+  // replaced iframe, a wedged API bridge): audio keeps playing from a ghost
+  // while every getter throws or returns stale zeros — frozen 00:00:00 under
+  // a lying pause icon, with +10s taps snapping back to 0.
+  const ytBadTickRef = useRef<number>(0);
+  const ytStuckTickRef = useRef<number>(0);
+  const ytLastClockRef = useRef<number>(-1);
+  // Consecutive auto-rebuilds without a single healthy tick in between —
+  // capped so a fundamentally broken API bridge ends in the blocked banner
+  // (with retry) instead of a rebuild toast loop.
+  const ytRebuildCountRef = useRef<number>(0);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -595,15 +607,49 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     showToast('נגן יוטיוב לא נטען — בדקו חיבור לרשת או חוסם פרסומות');
   }, [showToast]);
 
-  // Manual recovery from the blocked state (banner "try again" button):
-  // clears the flag and forces YouTubeHost to attempt init from scratch.
-  const retryYt = useCallback(() => {
+  // Clean player rebuild (auto-heal or manual retry): drops the
+  // possibly-dead binding, resets ready flags so the UI shows truthful
+  // "loading", and forces YouTubeHost to construct on a FRESH iframe div
+  // (re-constructing on an occupied div leaves ghost bindings behind:
+  // audible audio with dead getters). Play intent is preserved on the auto
+  // path so the sync effect resumes at the last known position once ready.
+  const rebuildYtPlayer = useCallback((manual: boolean) => {
+    ytBadTickRef.current = 0;
+    ytStuckTickRef.current = 0;
+    ytLastClockRef.current = -1;
+    ytPausedStreakRef.current = 0;
+    ytCuedStreakRef.current = 0;
+    if (manual) {
+      ytRebuildCountRef.current = 0;
+      setYtPlayer(null);
+      setIsYtReady(false);
+      setYtBlocked(false);
+      setYtError(null);
+      pendingAutoPlayRef.current = null;
+      showToast('מנסה לטעון את נגן יוטיוב שוב…');
+      setYtRetryToken((t) => t + 1);
+      return;
+    }
+    ytRebuildCountRef.current += 1;
+    if (ytRebuildCountRef.current > 3) {
+      // Fresh players keep coming up dead — stop looping, say so truthfully.
+      ytRebuildCountRef.current = 0;
+      reportYtApiBlocked();
+      return;
+    }
+    setYtPlayer(null);
+    setIsYtReady(false);
     setYtBlocked(false);
     setYtError(null);
-    pendingAutoPlayRef.current = null;
+    pendingAutoPlayRef.current = true;
+    showToast('מזהה תקלה בנגן — מחבר מחדש…');
     setYtRetryToken((t) => t + 1);
-    showToast('מנסה לטעון את נגן יוטיוב שוב…');
-  }, [showToast]);
+  }, [showToast, reportYtApiBlocked]);
+
+  // Manual recovery from the blocked state (banner "try again" button).
+  const retryYt = useCallback(() => {
+    rebuildYtPlayer(true);
+  }, [rebuildYtPlayer]);
 
   const clearYtError = useCallback(() => {
     setYtError(null);
@@ -687,6 +733,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     if (currentBook?.youtubeId && ytPlayer && isYtReady) {
       interval = setInterval(() => {
+        // Per-tick binding health snapshot (evaluated after the try/catch).
+        let tickState: number | null = null;
+        let tickClock: number | null = null;
+        let tickOk = false;
         try {
           // Two-way state sync: the player can pause/stop outside our UI
           // (earphone tap routed to the iframe, YT native controls, phone call).
@@ -694,6 +744,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           // YT states: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued.
           if (typeof ytPlayer.getPlayerState === 'function') {
             const st = ytPlayer.getPlayerState();
+            if (typeof st === 'number') tickState = st;
             if (st === 1) {
               ytPausedStreakRef.current = 0;
               ytCuedStreakRef.current = 0;
@@ -727,6 +778,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           if (typeof ytPlayer.getCurrentTime === 'function') {
             const ytTime = ytPlayer.getCurrentTime();
             if (typeof ytTime === 'number' && !isNaN(ytTime) && ytTime >= 0) {
+              tickClock = ytTime;
               // Skip poller writes while an optimistic seek is in flight
               // so rapid ±10s taps don't flicker back to the old position.
               if (Date.now() >= seekPendingUntilRef.current) {
@@ -788,8 +840,47 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             }
           }
           syncMediaPositionState();
+          tickOk = true;
         } catch {
           // ignore
+        }
+
+        // Player-binding health: while we intend to play, the getters must
+        // work AND the clock must advance. A dead binding (getters throw) or
+        // ghost playback (state PLAYING, clock frozen ~4s) means the iframe
+        // outlived our API handle — rebuild instead of lying. The sync
+        // effect resumes at the last known position once the fresh player
+        // is ready.
+        if (isPlayingRef.current) {
+          if (!tickOk) {
+            ytBadTickRef.current += 1;
+            ytStuckTickRef.current = 0;
+          } else {
+            ytBadTickRef.current = 0;
+            // Responsive getters = live binding — reset the rebuild cap.
+            if (tickState !== null) ytRebuildCountRef.current = 0;
+            if (tickState === 1 && tickClock !== null) {
+              if (
+                ytLastClockRef.current >= 0 &&
+                Math.abs(tickClock - ytLastClockRef.current) < 0.5
+              ) {
+                ytStuckTickRef.current += 1;
+              } else {
+                ytStuckTickRef.current = 0;
+              }
+              ytLastClockRef.current = tickClock;
+            } else {
+              ytStuckTickRef.current = 0;
+              if (tickClock !== null) ytLastClockRef.current = tickClock;
+            }
+          }
+          if (ytBadTickRef.current >= 6 || ytStuckTickRef.current >= 8) {
+            rebuildYtPlayer(false);
+            return;
+          }
+        } else {
+          ytBadTickRef.current = 0;
+          ytStuckTickRef.current = 0;
         }
 
         // Sleep timer countdown
@@ -850,7 +941,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow, syncMediaPositionState, markBookCompleted]);
+  }, [isPlaying, currentBook?.youtubeId, ytPlayer, isYtReady, duration, playbackSpeed, saveProgressNow, syncMediaPositionState, markBookCompleted, rebuildYtPlayer]);
 
   const flushPendingSeek = useCallback(() => {
     const target = pendingSeekTargetRef.current;

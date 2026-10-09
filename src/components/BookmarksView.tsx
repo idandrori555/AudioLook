@@ -32,10 +32,17 @@ export default function BookmarksView() {
 
       {bookmarks.length === 0 ? (
         <div className="glass-static py-16 text-center flex flex-col items-center justify-center gap-3 rounded-2xl p-6">
-          <span className="material-symbols-outlined text-[48px] text-white/20">bookmark_border</span>
-          <p className="text-white/70 text-[15px]">טרם נשמרו סימניות</p>
-          <p className="text-white/40 text-[12px] max-w-xs">
-            לחצו על כפתור הסימנייה בנגן או בכרטיס הספר כדי לשמור נקודות ציון חשובות
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl rotate-6 bg-[#ffb86b]/10 ring-1 ring-[#ffb86b]/30 text-[#ffb86b] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[36px]">bookmark_border</span>
+            </div>
+            <span className="material-symbols-outlined absolute -top-1.5 -start-2 text-[16px] text-[#ffc685] bg-[#1d1e23] rounded-full">
+              auto_awesome
+            </span>
+          </div>
+          <p className="text-white/70 text-[15px] font-medium">עוד אין סימניות — וזה בסדר</p>
+          <p className="text-white/40 text-[12px] max-w-xs leading-relaxed">
+            כשתשמעו משהו שווה זכירה, לחצו על הסימנייה בנגן והוא יחכה לכם כאן
           </p>
         </div>
       ) : (

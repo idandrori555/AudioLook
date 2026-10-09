@@ -1,9 +1,24 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { AnimatePresence, motion, useMotionValue, animate } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { useAudio } from '../context/AudioContext';
 import { springSnappy, tx, useAppReducedMotion } from './motion';
 import { FALLBACK_COVER } from './CoverImg';
+
+// One-shot celebration when the active book flips to completed.
+// Deterministic (module-level) so every burst looks evenly scattered.
+const BURST_COLORS = ['#ffb86b', '#ffc685', '#a7f3d0', '#bae6fd', '#ffffff'];
+const BURST_PARTICLES = Array.from({ length: 16 }, (_, i) => {
+  const angle = (i / 16) * Math.PI * 2 + (i % 2 === 0 ? 0.22 : -0.18);
+  const dist = 74 + ((i * 37) % 54);
+  return {
+    x: Math.cos(angle) * dist,
+    y: Math.sin(angle) * dist - 34,
+    rotate: ((i * 53) % 260) - 130,
+    color: BURST_COLORS[i % BURST_COLORS.length],
+    round: i % 3 === 0 ? '50%' : '2px',
+  };
+});
 
 export default function PlayerView() {
   const {
@@ -29,9 +44,11 @@ export default function PlayerView() {
     formatTime,
     formatRemainingTime,
     isVideoMode,
+    ytPlayer,
     ytBlocked,
     ytError,
     retryYt,
+    ytRetryToken,
     isYtReady,
   } = useAudio();
 
@@ -55,11 +72,22 @@ export default function PlayerView() {
   // before committing (no flash).
   const [prevPos, setPrevPos] = useState<{ bookId: string | null; idx: number }>({ bookId, idx: chapterIdx });
   const [tossDir, setTossDir] = useState<1 | -1>(1);
+  // Celebration state: increments once when the live book becomes completed.
+  const [burstKey, setBurstKey] = useState(0);
+  const prevCatRef = useRef<string | undefined>(undefined);
   if (prevPos.bookId !== bookId || prevPos.idx !== chapterIdx) {
     if (prevPos.bookId === bookId && prevPos.idx !== chapterIdx) {
       setTossDir(chapterIdx > prevPos.idx ? 1 : -1);
     }
     setPrevPos({ bookId, idx: chapterIdx });
+  }
+  // Render-phase detection (same pattern as above): the live book just
+  // flipped to completed → fire the confetti burst once.
+  const liveCat = currentBook?.category;
+  if (prevCatRef.current !== liveCat) {
+    const justCompleted = prevCatRef.current !== undefined && liveCat === 'completed';
+    prevCatRef.current = liveCat;
+    if (justCompleted && !reduced) setBurstKey((k) => k + 1);
   }
   const chapterKey = currentChapter ? currentChapter.id : `single-${bookId}`;
 
@@ -178,6 +206,47 @@ export default function PlayerView() {
   const [isCoverDragging, setIsCoverDragging] = useState(false);
   const coverFlying = useRef(false);
 
+  // Auto-dismiss for the celebration burst (animation end is unreliable
+  // when the tab is backgrounded mid-burst).
+  useEffect(() => {
+    if (burstKey === 0) return;
+    const t = setTimeout(() => setBurstKey(0), 1800);
+    return () => clearTimeout(t);
+  }, [burstKey]);
+
+  // On-screen YT diagnostics, gated behind ?debug=1 (zero impact otherwise).
+  // If the bar ever freezes again, read this line: it shows the live player
+  // state vs. what the app thinks — no devtools needed.
+  const showYtDebug = useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('debug') === '1';
+    } catch {
+      return false;
+    }
+  }, []);
+  const [ytDbg, setYtDbg] = useState('…');
+  useEffect(() => {
+    if (!showYtDebug) return;
+    const t = setInterval(() => {
+      try {
+        const st =
+          ytPlayer && typeof ytPlayer.getPlayerState === 'function'
+            ? ytPlayer.getPlayerState()
+            : 'n/a';
+        const tm =
+          ytPlayer && typeof ytPlayer.getCurrentTime === 'function'
+            ? ytPlayer.getCurrentTime()
+            : 'n/a';
+        setYtDbg(
+          `ready:${isYtReady ? 1 : 0} st:${st} yt:${tm} ctx:${Math.floor(currentTime)}/${duration} tok:${ytRetryToken}`,
+        );
+      } catch (e) {
+        setYtDbg(`GETTER-THREW ${String(e).slice(0, 60)}`);
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [showYtDebug, ytPlayer, isYtReady, ytRetryToken, currentTime, duration]);
+
   // New book → snap card back to center instantly (motion values survive
   // remount since key only swaps the img src, not the values).
   const activeBookId = currentBook.id;
@@ -290,6 +359,33 @@ export default function PlayerView() {
             /* Standard or Audio-only Cover Artwork — free full-screen drag,
                never clipped (overflow-visible), no select spring */
             <div className="relative">
+              {/* Breathing aura while playing: the cover feels alive, and the
+                  glow reads as "sound is coming out" at a glance */}
+              {isPlaying && !reduced && (
+                <div
+                  aria-hidden="true"
+                  className="cover-aura-playing pointer-events-none absolute -inset-7 rounded-[32px] bg-[radial-gradient(circle,rgba(255,184,107,0.35),rgba(139,124,255,0.12)_55%,transparent_70%)] blur-2xl"
+                />
+              )}
+              {/* Completion confetti — one-shot burst over the cover */}
+              {burstKey > 0 && (
+                <div
+                  key={burstKey}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+                >
+                  {BURST_PARTICLES.map((p, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+                      animate={{ x: p.x, y: p.y, opacity: 0, scale: 0.5, rotate: p.rotate }}
+                      transition={{ duration: 1.3, ease: 'easeOut' }}
+                      className="absolute h-2 w-2"
+                      style={{ background: p.color, borderRadius: p.round }}
+                    />
+                  ))}
+                </div>
+              )}
               <motion.div
                 style={{ rotate: frameRotate }}
                 className="relative w-[min(58vw,30dvh)] max-w-72 aspect-square rounded-2xl overflow-visible"
@@ -411,9 +507,9 @@ export default function PlayerView() {
           >
             {/* Background Track */}
             <div className="w-full h-[5px] rounded-full bg-white/10 overflow-hidden relative">
-              {/* Active Progress Bar (LTR left-to-right) */}
+              {/* Active Progress Bar (LTR left-to-right) with a playful shine sweep */}
               <div
-                className="h-full bg-gradient-to-r from-[#e89838] to-[#ffc685] rounded-full shadow-[0_0_12px_rgba(232,152,56,0.6)]"
+                className="progress-shimmer h-full bg-gradient-to-r from-[#e89838] to-[#ffc685] rounded-full shadow-[0_0_12px_rgba(232,152,56,0.6)]"
                 id="progress-fill"
                 style={{ width: `${displayPercent}%` }}
               />
@@ -435,6 +531,15 @@ export default function PlayerView() {
             <span id="remaining-time">{formatRemainingTime(displayTime, duration)}</span>
           </div>
         </div>
+
+        {showYtDebug && (
+          <div
+            dir="ltr"
+            className="fixed bottom-1 left-1 z-[100] rounded-md bg-black/85 px-2 py-1 font-mono text-[10px] text-lime-300 ring-1 ring-lime-400/40"
+          >
+            YT {ytDbg}
+          </div>
+        )}
 
         {/* Tactile Ergonomic Primary Controls */}
         <div className="flex items-center justify-center gap-3 min-[380px]:gap-6 sm:gap-9 mb-6">

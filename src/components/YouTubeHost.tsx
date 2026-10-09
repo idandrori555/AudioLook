@@ -119,10 +119,18 @@ export default function YouTubeHost() {
     let checkInterval: NodeJS.Timeout | null = null;
     const startedAt = Date.now();
 
-    // Manual retry (banner "try again"): drop the stale instance so init is
-    // genuinely re-attempted instead of early-returning on a dead player.
+    // Rebuild (manual retry or auto-heal): drop the stale instance AND its
+    // iframe. Re-constructing a YT.Player on an occupied div leaves the old
+    // binding half-alive (ghost audio, dead getters) — a fresh div makes
+    // re-init identical to first init.
     if (ytRetryToken > 0) {
       playerInstanceRef.current = null;
+      try {
+        if (containerRef.current) {
+          containerRef.current.innerHTML =
+            '<div id="lyra-yt-iframe-root" class="w-full h-full"></div>';
+        }
+      } catch {}
     }
 
     const initPlayer = () => {

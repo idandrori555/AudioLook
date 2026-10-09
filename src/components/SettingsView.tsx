@@ -173,7 +173,7 @@ export default function SettingsView() {
 
       {/* Library Backup & Restore */}
       <motion.section {...sectionAnim(1)} className="glass-static rounded-2xl p-4 flex flex-col gap-4 hover:border-[#ffb86b]/20 transition-colors duration-300">
-        <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
+        <h2 className="text-[15px] font-semibold text-sky-300 flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">backup</span>
           <span>גיבוי ושחזור</span>
         </h2>
@@ -253,7 +253,7 @@ export default function SettingsView() {
 
       {/* Storage and Streaming */}
       <motion.section {...sectionAnim(2)} className="glass-static rounded-2xl p-4 flex flex-col gap-4 hover:border-[#ffb86b]/20 transition-colors duration-300">
-        <h2 className="text-[15px] font-semibold text-[#ffb86b] flex items-center gap-2">
+        <h2 className="text-[15px] font-semibold text-emerald-300 flex items-center gap-2">
           <span className="material-symbols-outlined text-[19px]">hard_drive</span>
           <span>אחסון וסטרימינג</span>
         </h2>
